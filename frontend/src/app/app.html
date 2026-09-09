@@ -1,0 +1,959 @@
+<div class="app">
+
+  <!-- =========================
+       HEADER
+       ========================= -->
+  <header class="header">
+
+  <a
+    class="brand"
+    href="/"
+    aria-label="MiCarro, inicio"
+  >
+    <span
+      class="brand-mark"
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 32 32"
+        fill="none"
+      >
+        <path
+          d="M7 10.5h18l-1.7 9.2a3 3 0 0 1-3 2.5h-8.6a3 3 0 0 1-3-2.5L7 10.5Z"
+          fill="currentColor"
+        />
+
+        <path
+          d="M11.5 10.5c.3-3.8 1.8-5.7 4.5-5.7s4.2 1.9 4.5 5.7"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        />
+      </svg>
+    </span>
+
+    <strong>MiCarro</strong>
+  </a>
+
+
+  <div class="header-search">
+
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="10.8"
+        cy="10.8"
+        r="6.3"
+        stroke="currentColor"
+        stroke-width="1.8"
+      />
+
+      <path
+        d="m15.5 15.5 4 4"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+      />
+    </svg>
+
+    <input
+      type="search"
+      placeholder="Buscar productos..."
+      autocomplete="off"
+      (input)="onSearch($event)"
+    >
+
+  </div>
+
+
+  <button
+    class="cart-button"
+    type="button"
+    (click)="openCart()"
+    aria-label="Abrir carrito"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3.5 4.5h2l1.7 10.1a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 1.9-1.5l1.3-6.3H6.2"
+        stroke="currentColor"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+
+      <circle
+        cx="9.5"
+        cy="19.5"
+        r="1.3"
+        fill="currentColor"
+      />
+
+      <circle
+        cx="17.5"
+        cy="19.5"
+        r="1.3"
+        fill="currentColor"
+      />
+    </svg>
+
+    <span>Carrito</span>
+
+    @if (cartService.totalItems() > 0) {
+      <span class="cart-badge">
+        {{ cartService.totalItems() }}
+      </span>
+    }
+
+  </button>
+
+</header>
+
+
+  <!-- =========================
+       MAIN
+       ========================= -->
+  <main class="main">
+
+
+    <!-- =========================
+         HERO
+         ========================= -->
+    <section
+      class="hero"
+      aria-labelledby="catalog-title"
+    >
+      <div class="hero-copy">
+      
+        <span class="eyebrow">
+          Tu compra, más sencilla
+        </span>
+      
+        <h1 id="catalog-title">
+          Todo lo que necesitas,
+          <br>
+          <em>en un solo carrito.</em>
+        </h1>
+      
+        <p>
+          Encuentra tus productos habituales,
+          prepara tu compra y controla el total
+          de forma rápida y sencilla.
+        </p>
+      
+      </div>
+    </section>
+
+
+      <!-- =========================
+           SEARCH
+           ========================= -->
+
+
+    <!-- =========================
+         CATALOG
+         ========================= -->
+    <section
+      class="catalog"
+      aria-labelledby="products-title"
+    >
+
+    
+    
+      <div class="catalog-heading">
+
+        <div>
+          <span class="section-kicker">
+            Catálogo
+          </span>
+        
+          <h2 id="products-title">
+            Productos
+          </h2>
+        </div>
+      
+      
+        @if (
+          !loading() &&
+          !error() &&
+          products().length > 0 &&
+          totalPages() > 1
+        ) {
+        
+          <nav
+            class="pagination pagination-heading"
+            aria-label="Paginación superior de productos"
+          >
+        
+            <button
+              class="pagination-button"
+              type="button"
+              (click)="previousPage()"
+              [disabled]="currentPage() === 0"
+            >
+              <span aria-hidden="true">←</span>
+              Anterior
+            </button>
+          
+          
+            @if (!pageSelectorOpen()) {
+                        
+              <button
+                class="pagination-info pagination-page-button"
+                type="button"
+                (click)="openPageSelector()"
+                aria-label="Ir a otra página"
+                title="Ir a otra página"
+              >
+                <strong>
+                  {{ currentPage() + 1 }}
+                </strong>
+              
+                <span>
+                  de {{ totalPages() }}
+                </span>
+              </button>
+            
+            } @else {
+            
+              <div class="pagination-jump">
+              
+                <input
+                  type="number"
+                  min="1"
+                  [max]="totalPages()"
+                  [value]="pageInput()"
+                  (input)="onPageInput($event)"
+                  (keydown.enter)="goToPage()"
+                  (keydown.escape)="closePageSelector()"
+                  aria-label="Número de página"
+                >
+              
+                <span>
+                  de {{ totalPages() }}
+                </span>
+              
+              </div>
+            
+            }
+          
+          
+            <button
+              class="pagination-button"
+              type="button"
+              (click)="nextPage()"
+              [disabled]="currentPage() === totalPages() - 1"
+            >
+              Siguiente
+              <span aria-hidden="true">→</span>
+            </button>
+          
+          </nav>
+        
+        }
+      
+      </div>
+    
+    
+      <!-- =========================
+           LOADING
+           ========================= -->
+      @if (loading()) {
+
+        <div
+          class="state-message loading-state"
+          role="status"
+        >
+
+          <span
+            class="loader"
+            aria-hidden="true"
+          ></span>
+
+          <div>
+            <strong>
+              Preparando el catálogo
+            </strong>
+
+            <p>
+              Estamos cargando los productos.
+            </p>
+          </div>
+
+        </div>
+
+      }
+
+
+      <!-- =========================
+           ERROR
+           ========================= -->
+      @if (error()) {
+
+        <div
+          class="state-message error-state"
+          role="alert"
+        >
+
+          <span
+            class="state-icon"
+            aria-hidden="true"
+          >
+            !
+          </span>
+
+          <div>
+
+            <strong>
+              No hemos podido cargar el catálogo
+            </strong>
+
+            <p>
+              {{ error() }}
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            (click)="loadProducts(currentPage())"
+          >
+            Reintentar
+          </button>
+
+        </div>
+
+      }
+
+
+      <!-- =========================
+           EMPTY SEARCH
+           ========================= -->
+      @if (
+        !loading() &&
+        !error() &&
+        products().length === 0
+      ) {
+
+        <div class="state-message empty-results">
+
+          <span
+            class="state-icon"
+            aria-hidden="true"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                cx="10.5"
+                cy="10.5"
+                r="5.5"
+                stroke="currentColor"
+                stroke-width="1.6"
+              />
+
+              <path
+                d="m14.5 14.5 4 4"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+              />
+            </svg>
+          </span>
+
+          <div>
+
+            <strong>
+              No encontramos productos
+            </strong>
+
+            <p>
+              Prueba con otra palabra o una búsqueda más general.
+            </p>
+
+          </div>
+
+        </div>
+
+      }
+
+
+      <!-- =========================
+           PRODUCTS
+           ========================= -->
+      @if (
+        !loading() &&
+        !error() &&
+        products().length > 0
+      ) {
+
+        <div class="product-grid">
+
+
+          @for (
+            product of products();
+            track product.id
+          ) {
+
+            <article class="product-card">
+
+
+              <!-- IMAGE -->
+              <div class="product-image-container">
+
+                @if (product.category) {
+
+                  <span class="category">
+                    {{ product.category }}
+                  </span>
+
+                }
+
+
+                @if (product.imageUrl) {
+
+                  <img
+                    [src]="product.imageUrl"
+                    [alt]="product.name"
+                    class="product-image"
+                  >
+
+                } @else {
+
+                  <div
+                    class="no-image"
+                    aria-label="Producto sin imagen"
+                  >
+
+                    <svg
+                      viewBox="0 0 32 32"
+                      fill="none"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M7 10.5h18l-1.7 9.2a3 3 0 0 1-3 2.5h-8.6a3 3 0 0 1-3-2.5L7 10.5Z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                      />
+
+                      <path
+                        d="M11.5 10.5c.3-3.8 1.8-5.7 4.5-5.7s4.2 1.9 4.5 5.7"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+
+                    <span>
+                      Sin imagen
+                    </span>
+
+                  </div>
+
+                }
+
+              </div>
+
+
+              <!-- PRODUCT INFO -->
+              <div class="product-info">
+
+                @if (product.brand) {
+
+                  <span class="brand-label">
+                    {{ product.brand }}
+                  </span>
+
+                }
+
+
+                <h3>
+                  {{ product.name }}
+                </h3>
+
+
+                <p class="format">
+                  {{ product.format || 'Unidad' }}
+                </p>
+
+
+                <div class="product-footer">
+
+                  <strong class="price">
+                    {{ product.price ?? 0 }} €
+                  </strong>
+                
+                  @if ((cartService.quantities().get(product.id) ?? 0) === 0) {
+                  
+                    <!-- El producto todavía no está en el carrito -->
+                    <button
+                      class="add-button"
+                      type="button"
+                      (click)="addToCart(product)"
+                      [attr.aria-label]="'Añadir ' + product.name + ' al carrito'"
+                    >
+                      <svg
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M10 4.5v11M4.5 10h11"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                        />
+                      </svg>
+                    
+                      <span>Añadir</span>
+                    </button>
+                  
+                  } @else {
+                  
+                    <!-- El producto ya está en el carrito -->
+                    <div class="card-quantity">
+                    
+                      <button
+                        type="button"
+                        (click)="cartService.decreaseQuantity(product.id)"
+                        [attr.aria-label]="'Reducir cantidad de ' + product.name"
+                      >
+                        −
+                      </button>
+                    
+                      <span>
+                        {{ cartService.quantities().get(product.id) ?? 0 }}
+                      </span>
+                    
+                      <button
+                        type="button"
+                        (click)="cartService.increaseQuantity(product.id)"
+                        [attr.aria-label]="'Aumentar cantidad de ' + product.name"
+                      >
+                        +
+                      </button>
+                    
+                    </div>
+                  
+                  }
+                
+                </div>
+
+              </div>
+
+            </article>
+
+          }
+
+        </div>
+
+
+        <!-- =========================
+             PAGINATION
+             ========================= -->
+        @if (totalPages() > 1) {
+
+          <nav
+            class="pagination"
+            aria-label="Paginación de productos"
+          >
+
+            <button
+              class="pagination-button"
+              type="button"
+              (click)="previousPage()"
+              [disabled]="currentPage() === 0"
+            >
+              <span aria-hidden="true">
+                ←
+              </span>
+
+              Anterior
+            </button>
+
+
+            @if (!pageSelectorOpen()) {
+                        
+              <button
+                class="pagination-info pagination-page-button"
+                type="button"
+                (click)="openPageSelector()"
+                aria-label="Ir a otra página"
+                title="Ir a otra página"
+              >
+                <strong>
+                  {{ currentPage() + 1 }}
+                </strong>
+              
+                <span>
+                  de {{ totalPages() }}
+                </span>
+              </button>
+            
+            } @else {
+            
+              <div class="pagination-jump">
+              
+                <input
+                  type="number"
+                  min="1"
+                  [max]="totalPages()"
+                  [value]="pageInput()"
+                  (input)="onPageInput($event)"
+                  (keydown.enter)="goToPage()"
+                  (keydown.escape)="closePageSelector()"
+                  aria-label="Número de página"
+                >
+              
+                <span>
+                  de {{ totalPages() }}
+                </span>
+              
+              </div>
+            
+            }
+
+
+            <button
+              class="pagination-button"
+              type="button"
+              (click)="nextPage()"
+              [disabled]="currentPage() === totalPages() - 1"
+            >
+              Siguiente
+
+              <span aria-hidden="true">
+                →
+              </span>
+            </button>
+
+          </nav>
+
+        }
+
+      }
+
+    </section>
+
+  </main>
+
+
+  <!-- =========================
+       CART
+       ========================= -->
+  @if (cartOpen()) {
+
+
+    <!-- OVERLAY -->
+    <div
+      class="cart-overlay"
+      (click)="closeCart()"
+      aria-hidden="true"
+    ></div>
+
+
+    <!-- PANEL -->
+    <aside
+      class="cart-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cart-title"
+    >
+
+
+      <!-- CART HEADER -->
+      <div class="cart-header">
+
+        <div>
+
+          <span class="section-kicker">
+            Tu selección
+          </span>
+
+          <h2 id="cart-title">
+            Mi carrito
+          </h2>
+
+        </div>
+
+
+        <button
+          class="cart-close"
+          type="button"
+          (click)="closeCart()"
+          aria-label="Cerrar carrito"
+        >
+
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="m5 5 10 10M15 5 5 15"
+              stroke="currentColor"
+              stroke-width="1.7"
+              stroke-linecap="round"
+            />
+          </svg>
+
+        </button>
+
+      </div>
+
+
+      <!-- SUMMARY -->
+      <div class="cart-summary-line">
+
+        <span>
+          {{ cartService.totalItems() }}
+
+          {{
+            cartService.totalItems() === 1
+              ? 'producto'
+              : 'productos'
+          }}
+        </span>
+
+        <span>
+          Tu compra actual
+        </span>
+
+      </div>
+
+
+      <!-- =========================
+           EMPTY CART
+           ========================= -->
+      @if (cartService.items().length === 0) {
+
+        <div class="empty-cart">
+
+          <span
+            class="empty-cart-icon"
+            aria-hidden="true"
+          >
+
+            <svg
+              viewBox="0 0 32 32"
+              fill="none"
+            >
+              <path
+                d="M5 6h3l2.2 13.1a2.5 2.5 0 0 0 2.5 2.1h9.7a2.5 2.5 0 0 0 2.4-1.9L26.5 11H9"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+
+              <circle
+                cx="13"
+                cy="26"
+                r="1.5"
+                fill="currentColor"
+              />
+
+              <circle
+                cx="23"
+                cy="26"
+                r="1.5"
+                fill="currentColor"
+              />
+            </svg>
+
+          </span>
+
+
+          <strong>
+            Tu carrito está vacío
+          </strong>
+
+
+          <p>
+            Añade productos del catálogo y aparecerán aquí.
+          </p>
+
+
+          <button
+            type="button"
+            (click)="closeCart()"
+          >
+            Seguir comprando
+          </button>
+
+        </div>
+
+      } @else {
+
+
+        <!-- =========================
+             CART ITEMS
+             ========================= -->
+        <div class="cart-items">
+
+
+          @for (
+            item of cartService.items();
+            track item.product.id
+          ) {
+
+            <article class="cart-item">
+
+
+              <!-- IMAGE -->
+              <div class="cart-item-media">
+
+                @if (item.product.imageUrl) {
+
+                  <img
+                    [src]="item.product.imageUrl"
+                    [alt]="item.product.name"
+                    class="cart-item-image"
+                  >
+
+                } @else {
+
+                  <span aria-hidden="true">
+                    —
+                  </span>
+
+                }
+
+              </div>
+
+
+              <!-- INFO -->
+              <div class="cart-item-info">
+
+                <strong>
+                  {{ item.product.name }}
+                </strong>
+
+
+                <span>
+                  {{ item.product.format || 'Unidad' }}
+                </span>
+
+
+                <!-- QUANTITY -->
+                <div
+                  class="quantity-controls"
+                  aria-label="Cantidad"
+                >
+
+                  <button
+                    type="button"
+                    (click)="cartService.decreaseQuantity(item.product.id)"
+                    [attr.aria-label]="'Reducir cantidad de ' + item.product.name"
+                  >
+                    −
+                  </button>
+
+
+                  <span>
+                    {{ item.quantity }}
+                  </span>
+
+
+                  <button
+                    type="button"
+                    (click)="cartService.increaseQuantity(item.product.id)"
+                    [attr.aria-label]="'Aumentar cantidad de ' + item.product.name"
+                  >
+                    +
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              <!-- ACTIONS -->
+              <div class="cart-item-actions">
+
+                <strong>
+                  {{
+                    (
+                      (item.product.price ?? 0)
+                      * item.quantity
+                    ).toFixed(2)
+                  }}
+                  €
+                </strong>
+
+
+                <button
+                  class="remove-button"
+                  type="button"
+                  (click)="cartService.removeProduct(item.product.id)"
+                  [attr.aria-label]="'Eliminar ' + item.product.name"
+                >
+                  Eliminar
+                </button>
+
+              </div>
+
+            </article>
+
+          }
+
+        </div>
+
+
+        <!-- =========================
+             CART FOOTER
+             ========================= -->
+        <footer class="cart-footer">
+
+
+          <button
+            class="clear-cart-button"
+            type="button"
+            (click)="cartService.clearCart()"
+          >
+            Vaciar carrito
+          </button>
+
+
+          <div class="cart-total">
+
+            <div>
+
+              <span>
+                Total
+              </span>
+
+              <small>
+                Impuestos incluidos
+              </small>
+
+            </div>
+
+
+            <strong>
+              {{
+                cartService
+                  .totalPrice()
+                  .toFixed(2)
+              }}
+              €
+            </strong>
+
+          </div>
+
+        </footer>
+
+      }
+
+    </aside>
+
+  }
+
+</div>
