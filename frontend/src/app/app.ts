@@ -1,4 +1,10 @@
-import { Component, OnDestroy, OnInit, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  OnDestroy,
+  OnInit,
+  signal
+} from '@angular/core';
 
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -6,6 +12,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { Product } from './models/product';
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
+import { FavoriteService } from './services/favorite.service';
 
 
 @Component({
@@ -32,6 +39,35 @@ export class App implements OnInit, OnDestroy {
 
 
   // =========================
+  // VISTA DE FAVORITOS
+  // =========================
+
+  protected readonly favoritesView = signal(false);
+
+  protected readonly favoriteProducts = computed(() => {
+
+    const query = this.search().trim().toLowerCase();
+
+    const favorites = this.favoriteService.products();
+
+    if (!query) {
+      return favorites;
+    }
+
+    return favorites.filter(product =>
+      (product.name ?? '').toLowerCase().includes(query) ||
+      (product.brand ?? '').toLowerCase().includes(query)
+    );
+  });
+
+  protected readonly visibleProducts = computed(() =>
+    this.favoritesView()
+      ? this.favoriteProducts()
+      : this.products()
+  );
+
+
+  // =========================
   // ESTADO DEL CARRITO
   // =========================
 
@@ -51,7 +87,8 @@ export class App implements OnInit, OnDestroy {
 
   constructor(
     private readonly productService: ProductService,
-    protected readonly cartService: CartService
+    protected readonly cartService: CartService,
+    protected readonly favoriteService: FavoriteService
   ) {}
 
 
@@ -68,7 +105,12 @@ export class App implements OnInit, OnDestroy {
       )
       .subscribe((search) => {
         this.search.set(search);
-        this.loadProducts(0);
+
+        // En la vista de favoritos el filtro es local:
+        // no hace falta volver a consultar el backend.
+        if (!this.favoritesView()) {
+          this.loadProducts(0);
+        }
       });
 
     this.loadProducts();
@@ -172,6 +214,31 @@ export class App implements OnInit, OnDestroy {
 
   protected addToCart(product: Product): void {
     this.cartService.addProduct(product);
+  }
+
+  protected toggleFavorite(product: Product): void {
+    this.favoriteService.toggle(product);
+  }
+
+  protected toggleFavorites(): void {
+    const activating = !this.favoritesView();
+    this.favoritesView.set(activating);
+
+    // Al volver al catálogo completo hay que recargar
+    // con la búsqueda actual para no mostrar resultados atrasados.
+    if (!activating) {
+      this.loadProducts(this.currentPage());
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+
+  protected showCatalog(): void {
+    this.favoritesView.set(false);
+    this.loadProducts(this.currentPage());
   }
 
   protected openCart(): void {
