@@ -7,12 +7,15 @@ import {
 
 import { AuthResponse } from '../models/auth-response';
 import { UserProfile } from '../models/user-profile';
+import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
 
   let authService: AuthService;
   let httpMock: HttpTestingController;
+
+  const apiUrl = `${environment.apiBaseUrl}/api`;
 
   const authResponse: AuthResponse = {
     token: 'jwt-token',
@@ -48,7 +51,7 @@ describe('AuthService', () => {
       .register('Dani', 'dani@example.com', 'password123')
       .subscribe(result => profile = result);
 
-    const request = httpMock.expectOne('http://localhost:8080/api/auth/register');
+    const request = httpMock.expectOne(`${apiUrl}/auth/register`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       name: 'Dani',
@@ -67,7 +70,7 @@ describe('AuthService', () => {
   it('login guarda el token y el usuario', () => {
     authService.login('dani@example.com', 'password123').subscribe();
 
-    const request = httpMock.expectOne('http://localhost:8080/api/auth/login');
+    const request = httpMock.expectOne(`${apiUrl}/auth/login`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       email: 'dani@example.com',
@@ -81,7 +84,7 @@ describe('AuthService', () => {
 
   it('logout limpia la sesión', () => {
     authService.login('dani@example.com', 'password123').subscribe();
-    httpMock.expectOne('http://localhost:8080/api/auth/login').flush(authResponse);
+    httpMock.expectOne(`${apiUrl}/auth/login`).flush(authResponse);
 
     authService.logout();
 
@@ -95,7 +98,7 @@ describe('AuthService', () => {
   it('getProfile obtiene y actualiza el usuario', () => {
     authService.getProfile().subscribe();
 
-    const request = httpMock.expectOne('http://localhost:8080/api/users/me');
+    const request = httpMock.expectOne(`${apiUrl}/users/me`);
     expect(request.request.method).toBe('GET');
     request.flush({ id: 2, name: 'Ana', email: 'ana@example.com' });
 

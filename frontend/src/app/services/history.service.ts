@@ -8,6 +8,7 @@ import {
   ShoppingPlanHistorySummary
 } from '../models/shopping-plan-history';
 import { ShoppingPlanResponse } from '../models/shopping-plan-response';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -16,7 +17,7 @@ export class HistoryService {
 
   private readonly http = inject(HttpClient);
 
-  private readonly apiUrl = 'http://localhost:8080/api/history';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/history`;
 
   createHistory(
     plan: ShoppingPlanResponse

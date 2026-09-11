@@ -11,6 +11,7 @@ import {
 
 import { AuthResponse } from '../models/auth-response';
 import { AuthService } from '../services/auth.service';
+import { environment } from '../../environments/environment';
 import { authInterceptor } from './auth.interceptor';
 
 describe('authInterceptor', () => {
@@ -50,7 +51,7 @@ describe('authInterceptor', () => {
   function startSession(): void {
     authService.login('dani@example.com', 'password123').subscribe();
     httpMock
-      .expectOne('http://localhost:8080/api/auth/login')
+      .expectOne(`${environment.apiBaseUrl}/api/auth/login`)
       .flush(authResponse);
   }
 

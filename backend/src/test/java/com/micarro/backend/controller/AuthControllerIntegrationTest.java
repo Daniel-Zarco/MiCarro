@@ -1,6 +1,5 @@
 package com.micarro.backend.controller;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -63,15 +62,11 @@ class AuthControllerIntegrationTest {
                         .content(registerBody(email, "password123")))
                 .andExpect(status().isCreated());
 
-        String errorMessage = mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registerBody(email, "password123")))
                 .andExpect(status().isConflict())
-                .andReturn()
-                .getResponse()
-                .getErrorMessage();
-
-        assertThat(errorMessage).isEqualTo("El email ya está registrado");
+                .andExpect(jsonPath("$.message").value("El email ya está registrado"));
     }
 
     @Test

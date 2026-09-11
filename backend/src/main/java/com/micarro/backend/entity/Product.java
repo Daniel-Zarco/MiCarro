@@ -1,15 +1,25 @@
 package com.micarro.backend.entity;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
+import org.hibernate.annotations.SQLRestriction;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Column;
-import java.math.BigDecimal;
 
+/*
+ * El catálogo público (y los candidatos del planner) solo deben ver productos
+ * activos. La restricción se aplica a las consultas de entidad; el servicio de
+ * sincronización usa consultas nativas para poder ver también los inactivos.
+ */
 @Entity
 @Table(name = "products")
+@SQLRestriction("active = true")
 public class Product {
 
     @Id
@@ -30,6 +40,14 @@ public class Product {
     private String format;
 
     private BigDecimal price;
+
+    private String source;
+
+    @Column(name = "last_synced_at")
+    private Instant lastSyncedAt;
+
+    @Column(nullable = false)
+    private boolean active = true;
 
     public Product() {
     }
@@ -96,5 +114,29 @@ public class Product {
     
     public void setPrice(BigDecimal price) {
         this.price = price;
+    }
+
+    public String getSource() {
+        return source;
+    }
+
+    public void setSource(String source) {
+        this.source = source;
+    }
+
+    public Instant getLastSyncedAt() {
+        return lastSyncedAt;
+    }
+
+    public void setLastSyncedAt(Instant lastSyncedAt) {
+        this.lastSyncedAt = lastSyncedAt;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
     }
 }

@@ -17,10 +17,17 @@ import com.micarro.backend.provider.dto.MercadonaSubcategoryDto;
 @Component
 public class MercadonaProvider implements ProductProvider {
 
+    public static final String SOURCE = "MERCADONA";
+
     private final MercadonaClient mercadonaClient;
 
     public MercadonaProvider(MercadonaClient mercadonaClient) {
         this.mercadonaClient = mercadonaClient;
+    }
+
+    @Override
+    public String getSource() {
+        return SOURCE;
     }
 
     @Override

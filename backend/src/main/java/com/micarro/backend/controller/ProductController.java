@@ -1,16 +1,20 @@
 package com.micarro.backend.controller;
 
+import com.micarro.backend.dto.PageResponse;
+import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.service.ProductService;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
+
+    private static final String NOT_FOUND_MESSAGE = "Producto no encontrado";
 
     private final ProductService productService;
 
@@ -19,12 +23,12 @@ public class ProductController {
     }
 
     @PostMapping
-    public Product createProduct(@RequestBody Product product) {
+    public ProductResponse createProduct(@RequestBody Product product) {
         return productService.createProduct(product);
     }
 
     @GetMapping
-    public Page<Product> getProducts(
+    public PageResponse<ProductResponse> getProducts(
             @RequestParam(required = false) String search,
             Pageable pageable) {
 
@@ -32,31 +36,33 @@ public class ProductController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
+    public ProductResponse getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> notFound());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(
+    public ProductResponse updateProduct(
             @PathVariable Long id,
             @RequestBody Product productDetails) {
 
         return productService.updateProduct(id, productDetails)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElseThrow(() -> notFound());
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteProduct(@PathVariable Long id) {
 
-        boolean deleted = productService.deleteProduct(id);
-
-        if (!deleted) {
-            return ResponseEntity.notFound().build();
+        if (!productService.deleteProduct(id)) {
+            throw notFound();
         }
+    }
 
-        return ResponseEntity.noContent().build();
+    private ResponseStatusException notFound() {
+        return new ResponseStatusException(
+                HttpStatus.NOT_FOUND,
+                NOT_FOUND_MESSAGE
+        );
     }
 }

@@ -4,6 +4,7 @@ import { catchError, forkJoin, of } from 'rxjs';
 
 import { Product } from '../models/product';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ import { AuthService } from './auth.service';
 export class FavoriteService {
 
   private readonly storageKey = 'micarro-favorites';
-  private readonly apiUrl = 'http://localhost:8080/api/favorites';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api/favorites`;
 
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);

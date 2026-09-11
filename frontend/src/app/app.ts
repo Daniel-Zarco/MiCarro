@@ -161,7 +161,7 @@ export class App implements OnInit, OnDestroy {
 
           this.products.set(response.content);
 
-          this.currentPage.set(response.number);
+          this.currentPage.set(response.page);
           this.totalPages.set(response.totalPages);
 
           this.loading.set(false);

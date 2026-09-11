@@ -1,5 +1,6 @@
 package com.micarro.backend.external.mercadona;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -12,9 +13,11 @@ public class MercadonaClient {
 
     private final RestClient restClient;
 
-    public MercadonaClient() {
+    public MercadonaClient(
+            @Value("${app.mercadona.base-url}") String baseUrl) {
+
         this.restClient = RestClient.builder()
-                .baseUrl("https://tienda.mercadona.es/api")
+                .baseUrl(baseUrl)
                 .build();
     }
 

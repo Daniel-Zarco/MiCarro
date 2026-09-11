@@ -29,7 +29,7 @@ describe('App', () => {
           useValue: {
             getProducts: () => of({
               content: [product],
-              number: 0,
+              page: 0,
               totalPages: 1,
               totalElements: 1,
               size: 24,

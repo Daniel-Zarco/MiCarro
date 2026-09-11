@@ -11,12 +11,19 @@ import com.micarro.backend.entity.UserFavorite;
 
 public interface UserFavoriteRepository extends JpaRepository<UserFavorite, Long> {
 
-    @Query("""
-            select favorite.product
-            from UserFavorite favorite
-            where favorite.user.id = :userId
-            order by favorite.id
-            """)
+    /*
+     * Consulta nativa para incluir también productos inactivos: los favoritos
+     * existentes no deben "desaparecer" si un producto deja de estar activo.
+     */
+    @Query(
+            value = """
+                    select p.* from user_favorites f
+                    join products p on p.id = f.product_id
+                    where f.user_id = :userId
+                    order by f.id
+                    """,
+            nativeQuery = true
+    )
     List<Product> findProductsByUserId(@Param("userId") Long userId);
 
     boolean existsByUserIdAndProductId(Long userId, Long productId);

@@ -1,32 +1,40 @@
 package com.micarro.backend.controller;
 
-import java.util.List;
-
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.micarro.backend.entity.Product;
+import com.micarro.backend.dto.SyncResult;
 import com.micarro.backend.external.mercadona.MercadonaClient;
 import com.micarro.backend.provider.dto.MercadonaCategoryResponse;
-import com.micarro.backend.service.ProductImportService;
+import com.micarro.backend.service.ProductSyncService;
 import com.micarro.backend.provider.dto.MercadonaCategoriesResponse;
 
+/*
+ * Endpoints internos de importación/catálogo de Mercadona.
+ * Solo se registran con app.dev-endpoints-enabled=true (local), para que
+ * en producción no queden expuestos.
+ */
 @RestController
 @RequestMapping("/api/mercadona")
+@ConditionalOnProperty(
+        name = "app.dev-endpoints-enabled",
+        havingValue = "true"
+)
 public class MercadonaController {
 
     private final MercadonaClient mercadonaClient;
-    private final ProductImportService productImportService;
+    private final ProductSyncService productSyncService;
 
     public MercadonaController(
             MercadonaClient mercadonaClient,
-            ProductImportService productImportService) {
+            ProductSyncService productSyncService) {
 
         this.mercadonaClient = mercadonaClient;
-        this.productImportService = productImportService;
+        this.productSyncService = productSyncService;
     }
 
     @GetMapping("/categories/{id}")
@@ -35,8 +43,8 @@ public class MercadonaController {
     }
 
     @PostMapping("/import")
-    public List<Product> importProducts() {
-        return productImportService.importProducts();
+    public SyncResult importProducts() {
+        return productSyncService.sync();
     }
 
     @GetMapping("/categories")

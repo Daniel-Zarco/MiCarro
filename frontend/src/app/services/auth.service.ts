@@ -4,6 +4,7 @@ import { map, Observable, tap } from 'rxjs';
 
 import { AuthResponse } from '../models/auth-response';
 import { UserProfile } from '../models/user-profile';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +13,7 @@ export class AuthService {
 
   private readonly http = inject(HttpClient);
 
-  private readonly apiUrl = 'http://localhost:8080/api';
+  private readonly apiUrl = `${environment.apiBaseUrl}/api`;
 
   private readonly tokenKey = 'micarro-token';
   private readonly userKey = 'micarro-user';

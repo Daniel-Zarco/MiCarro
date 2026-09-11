@@ -1,0 +1,19 @@
+# Artefactos de build
+target/
+
+# Control de versiones / IDE
+.git/
+.gitignore
+.gitattributes
+.idea/
+*.iml
+.vscode/
+
+# Documentación y ficheros de Docker
+HELP.md
+Dockerfile
+.dockerignore
+
+# Sistema
+.DS_Store
+Thumbs.db

@@ -7,6 +7,7 @@ import {
 import { signal, WritableSignal } from '@angular/core';
 
 import { Product } from '../models/product';
+import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { FavoriteService } from './favorite.service';
 
@@ -16,7 +17,7 @@ describe('FavoriteService', () => {
   let httpMock: HttpTestingController;
   let authenticated: WritableSignal<boolean>;
 
-  const apiUrl = 'http://localhost:8080/api/favorites';
+  const apiUrl = `${environment.apiBaseUrl}/api/favorites`;
   const storageKey = 'micarro-favorites';
 
   const product: Product = {

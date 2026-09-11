@@ -7,6 +7,7 @@ import {
 
 import { ShoppingPlanHistory } from '../models/shopping-plan-history';
 import { ShoppingPlanResponse } from '../models/shopping-plan-response';
+import { environment } from '../../environments/environment';
 import { HistoryService } from './history.service';
 
 describe('HistoryService', () => {
@@ -14,7 +15,7 @@ describe('HistoryService', () => {
   let historyService: HistoryService;
   let httpMock: HttpTestingController;
 
-  const apiUrl = 'http://localhost:8080/api/history';
+  const apiUrl = `${environment.apiBaseUrl}/api/history`;
 
   const plan: ShoppingPlanResponse = {
     budget: 60,

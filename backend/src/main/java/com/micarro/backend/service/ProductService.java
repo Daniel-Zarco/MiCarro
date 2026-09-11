@@ -1,12 +1,13 @@
 package com.micarro.backend.service;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import com.micarro.backend.dto.PageResponse;
+import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.repository.ProductRepository;
 
@@ -19,38 +20,47 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public Product createProduct(Product product) {
-        return productRepository.save(product);
+    public ProductResponse createProduct(Product product) {
+        return toResponse(productRepository.save(product));
     }
 
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
-    }
+    public PageResponse<ProductResponse> getProducts(
+            String search,
+            Pageable pageable) {
 
-    public Page<Product> getProducts(String search, Pageable pageable) {
+        Page<Product> page = (search == null || search.isBlank())
+                ? productRepository.findAll(pageable)
+                : productRepository.findByNameContainingIgnoreCase(
+                        search.trim(),
+                        pageable
+                );
 
-        if (search == null || search.isBlank()) {
-            return productRepository.findAll(pageable);
-        }
-
-        return productRepository.findByNameContainingIgnoreCase(
-                search.trim(),
-                pageable
+        return PageResponse.from(
+                page,
+                page.getContent()
+                        .stream()
+                        .map(this::toResponse)
+                        .toList()
         );
     }
 
-    public Optional<Product> getProductById(Long id) {
-        return productRepository.findById(id);
+    public Optional<ProductResponse> getProductById(Long id) {
+        return productRepository.findById(id)
+                .filter(Product::isActive)
+                .map(this::toResponse);
     }
 
-    public Optional<Product> updateProduct(Long id, Product productDetails) {
+    public Optional<ProductResponse> updateProduct(
+            Long id,
+            Product productDetails) {
+
         return productRepository.findById(id)
                 .map(product -> {
                     product.setName(productDetails.getName());
                     product.setBrand(productDetails.getBrand());
                     product.setCategory(productDetails.getCategory());
 
-                    return productRepository.save(product);
+                    return toResponse(productRepository.save(product));
                 });
     }
 
@@ -63,5 +73,19 @@ public class ProductService {
         productRepository.deleteById(id);
 
         return true;
+    }
+
+    private ProductResponse toResponse(Product product) {
+
+        return new ProductResponse(
+                product.getId(),
+                product.getExternalId(),
+                product.getName(),
+                product.getBrand(),
+                product.getCategory(),
+                product.getImageUrl(),
+                product.getFormat(),
+                product.getPrice()
+        );
     }
 }
