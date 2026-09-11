@@ -451,6 +451,11 @@
 .plan-submit {
   align-self: flex-start;
 
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
   min-height: 44px;
 
   margin-top: 18px;
@@ -479,7 +484,7 @@
     box-shadow 0.2s ease;
 }
 
-.plan-submit:hover {
+.plan-submit:hover:not(:disabled) {
   background: var(--green-dark);
 
   transform: translateY(-1px);
@@ -489,68 +494,380 @@
     rgba(47, 111, 85, 0.15);
 }
 
-.plan-success {
+.plan-submit:disabled {
+  cursor: progress;
+
+  opacity: 0.8;
+}
+
+.plan-spinner {
+  width: 15px;
+  height: 15px;
+
+  flex: 0 0 auto;
+
+  border:
+    2px solid
+    rgba(255, 255, 255, 0.45);
+
+  border-top-color: white;
+
+  border-radius: 50%;
+
+  animation:
+    plan-spin
+    0.7s
+    linear
+    infinite;
+}
+
+@keyframes plan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ----- Preview del plan ----- */
+
+.plan-preview {
   display: flex;
-  align-items: flex-start;
-  gap: 13px;
+  flex-direction: column;
+  gap: 18px;
+}
 
-  margin-top: 22px;
+.plan-preview-header h3 {
+  margin:
+    6px 0
+    0;
 
-  padding: 14px 16px;
+  font-size:
+    clamp(
+      1.3rem,
+      2.4vw,
+      1.7rem
+    );
+
+  font-weight: 750;
+
+  letter-spacing: -0.04em;
+}
+
+.plan-preview-header p {
+  margin:
+    6px 0
+    0;
+
+  color: var(--muted);
+
+  font-size: 0.84rem;
+}
+
+.plan-items {
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
 
   border:
     1px solid
-    rgba(47, 111, 85, 0.18);
+    var(--line);
 
-  border-radius: 14px;
+  border-radius: 16px;
+
+  overflow: hidden;
+}
+
+.plan-item {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  padding: 13px 16px;
+
+  border-bottom:
+    1px solid
+    var(--line);
+
+  background: white;
+}
+
+.plan-item:last-child {
+  border-bottom: 0;
+}
+
+.plan-item-info {
+  display: flex;
+  flex-direction: column;
+
+  gap: 3px;
+
+  min-width: 0;
+}
+
+.plan-item-info strong {
+  color: var(--ink);
+
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.plan-item-format {
+  color: var(--muted);
+
+  font-size: 0.74rem;
+}
+
+.plan-item-numbers {
+  display: flex;
+  align-items: baseline;
+
+  gap: 14px;
+
+  flex: 0 0 auto;
+}
+
+.plan-item-qty {
+  color: var(--muted);
+
+  font-size: 0.8rem;
+
+  white-space: nowrap;
+}
+
+.plan-item-subtotal {
+  font-size: 0.95rem;
+  font-weight: 800;
+
+  white-space: nowrap;
+}
+
+.plan-totals {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+
+  margin: 0;
+  padding: 16px 18px;
+
+  border-radius: 16px;
 
   background: var(--green-pale);
 }
 
-.plan-success-icon {
-  display: grid;
+.plan-totals > div {
+  display: flex;
 
-  width: 32px;
-  height: 32px;
+  align-items: baseline;
+  justify-content: space-between;
 
-  flex: 0 0 auto;
-
-  place-items: center;
-
-  border-radius: 10px;
-
-  background: var(--green);
-
-  color: white;
+  gap: 12px;
 }
 
-.plan-success-icon svg {
-  width: 17px;
+.plan-totals dt {
+  color: var(--ink-soft);
+
+  font-size: 0.84rem;
 }
 
-.plan-success strong {
-  display: block;
-
-  color: var(--green-dark);
+.plan-totals dd {
+  margin: 0;
 
   font-size: 0.9rem;
   font-weight: 800;
 }
 
-.plan-success p {
-  margin:
-    3px 0 0;
+.plan-totals-remaining {
+  padding-top: 9px;
 
-  color: var(--ink-soft);
+  border-top:
+    1px solid
+    rgba(47, 111, 85, 0.15);
+}
 
-  font-size: 0.83rem;
+.plan-totals-remaining dd {
+  color: var(--green-dark);
+
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.plan-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  gap: 8px;
+
+  padding: 30px 22px;
+
+  border:
+    1px dashed
+    var(--line-strong);
+
+  border-radius: 16px;
+
+  background: var(--paper);
+
+  text-align: center;
+}
+
+.plan-preview-empty-icon {
+  display: grid;
+
+  width: 52px;
+  height: 52px;
+
+  margin-bottom: 6px;
+
+  place-items: center;
+
+  border-radius: 16px;
+
+  background: var(--green-soft);
+
+  color: var(--green);
+}
+
+.plan-preview-empty-icon svg {
+  width: 26px;
+}
+
+.plan-preview-empty strong {
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+.plan-preview-empty p {
+  max-width: 320px;
+
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 0.84rem;
   line-height: 1.5;
 }
 
-.plan-success b {
+.plan-reset {
+  align-self: flex-start;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  min-height: 44px;
+
+  padding: 11px 20px;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 12px;
+
+  background: var(--paper);
+
+  color: var(--green);
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.plan-reset:hover {
+  transform: translateY(-1px);
+
+  border-color: var(--green);
+
+  background: var(--green-pale);
+}
+
+.plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+
+  gap: 12px;
+}
+
+.plan-add-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  min-height: 44px;
+
+  padding: 11px 20px;
+
+  border:
+    1px solid
+    var(--green);
+
+  border-radius: 12px;
+
+  background: var(--green);
+
+  color: white;
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.plan-add-all svg {
+  width: 18px;
+}
+
+.plan-add-all:hover:not(:disabled) {
+  background: var(--green-dark);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 18px
+    rgba(47, 111, 85, 0.15);
+}
+
+.plan-add-all:disabled {
+  cursor: not-allowed;
+
+  opacity: 0.5;
+}
+
+.plan-cart-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  margin: 0;
+
   color: var(--green-dark);
 
-  font-weight: 800;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.plan-cart-feedback svg {
+  width: 16px;
 }
 
 
@@ -578,5 +895,41 @@
 
   .plan-submit {
     align-self: stretch;
+  }
+
+  .plan-item {
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 6px;
+  }
+
+  .plan-item-numbers {
+    width: 100%;
+
+    justify-content: space-between;
+  }
+
+  .plan-reset {
+    align-self: stretch;
+
+    justify-content: center;
+  }
+
+  .plan-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .plan-add-all {
+    justify-content: center;
+  }
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+
+  .plan-spinner {
+    animation-duration: 1.4s;
   }
 }

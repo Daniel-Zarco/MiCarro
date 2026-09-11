@@ -2,20 +2,16 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
+  OnDestroy,
   signal
 } from '@angular/core';
 
-export type PlanMode = 'SAVINGS' | 'BALANCED' | 'QUALITY';
-
-export interface ShoppingPlanRequest {
-  budget: number;
-  items: string[];
-  mode: PlanMode;
-  preferences: {
-    prioritizeFavorites: boolean;
-    maximizeBudget: boolean;
-  };
-}
+import { ShoppingMode } from '../models/shopping-mode';
+import { ShoppingPlanRequest } from '../models/shopping-plan-request';
+import { ShoppingPlanResponse } from '../models/shopping-plan-response';
+import { CartService } from '../services/cart.service';
+import { ShoppingPlanService } from '../services/shopping-plan.service';
 
 @Component({
   selector: 'app-planner',
@@ -23,26 +19,35 @@ export interface ShoppingPlanRequest {
   styleUrls: ['./planner.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PlannerComponent {
+export class PlannerComponent implements OnDestroy {
+
+  private readonly shoppingPlanService = inject(ShoppingPlanService);
+  private readonly cartService = inject(CartService);
 
   readonly budget = signal<number | null>(null);
   readonly needs = signal('');
 
-  readonly planMode = signal<PlanMode>('BALANCED');
+  readonly planMode = signal<ShoppingMode>('BALANCED');
 
   readonly prioritizeFavorites = signal(true);
   readonly maximizeBudget = signal(false);
 
   readonly planSubmitted = signal(false);
-  readonly preparedPlan = signal<ShoppingPlanRequest | null>(null);
+  readonly planLoading = signal(false);
+  readonly planError = signal<string | null>(null);
+  readonly preparedPlan = signal<ShoppingPlanResponse | null>(null);
+
+  readonly cartFeedback = signal(false);
+
+  private feedbackTimer?: ReturnType<typeof setTimeout>;
 
   readonly planModeOptions: {
-    value: PlanMode;
+    value: ShoppingMode;
     label: string;
     hint: string;
   }[] = [
     {
-      value: 'SAVINGS',
+      value: 'CHEAP',
       label: 'Ahorrar',
       hint: 'Prioriza el precio'
     },
@@ -90,14 +95,16 @@ export class PlannerComponent {
       raw === '' ? null : Number(raw)
     );
     this.planSubmitted.set(false);
+    this.planError.set(null);
   }
 
   onNeedsInput(event: Event): void {
     this.needs.set((event.target as HTMLInputElement).value);
     this.planSubmitted.set(false);
+    this.planError.set(null);
   }
 
-  setPlanMode(mode: PlanMode): void {
+  setPlanMode(mode: ShoppingMode): void {
     this.planMode.set(mode);
   }
 
@@ -111,14 +118,13 @@ export class PlannerComponent {
 
   preparePlan(): void {
     this.planSubmitted.set(true);
+    this.planError.set(null);
 
     if (!this.planValid()) {
       return;
     }
 
-    // Solo se guarda el objeto de configuración en memoria.
-    // La siguiente fase lo enviará al backend.
-    this.preparedPlan.set({
+    const request: ShoppingPlanRequest = {
       budget: this.budget()!,
       items: this.planItems(),
       mode: this.planMode(),
@@ -126,12 +132,109 @@ export class PlannerComponent {
         prioritizeFavorites: this.prioritizeFavorites(),
         maximizeBudget: this.maximizeBudget(),
       }
-    });
+    };
+
+    this.preparedPlan.set(null);
+    this.planLoading.set(true);
+
+    this.shoppingPlanService
+      .createPlan(request)
+      .subscribe({
+
+        next: (response) => {
+          this.preparedPlan.set(response);
+          this.planLoading.set(false);
+        },
+
+        error: (error) => {
+          console.error(
+            'Error preparando la compra:',
+            error
+          );
+
+          this.planError.set(
+            'No se ha podido preparar la compra. Inténtalo de nuevo.'
+          );
+
+          this.planLoading.set(false);
+        }
+
+      });
   }
 
-  planModeLabel(mode: PlanMode): string {
+  planModeLabel(mode: ShoppingMode): string {
     return this.planModeOptions
       .find(option => option.value === mode)
       ?.label ?? mode;
+  }
+
+  resetPlan(): void {
+    this.preparedPlan.set(null);
+    this.planError.set(null);
+    this.planSubmitted.set(false);
+    this.cartFeedback.set(false);
+  }
+
+  addAllToCart(): void {
+
+    const plan = this.preparedPlan();
+
+    if (!plan || plan.items.length === 0) {
+      return;
+    }
+
+    let addedItems = 0;
+
+    for (const item of plan.items) {
+
+      if (item.productId == null) {
+        continue;
+      }
+
+      this.cartService.addItem(
+        {
+          id: item.productId,
+          name: item.name ?? '',
+          brand: item.brand,
+          format: item.format,
+          price: item.unitPrice,
+          imageUrl: null
+        },
+        item.quantity ?? 1
+      );
+
+      addedItems++;
+    }
+
+    if (addedItems === 0) {
+      return;
+    }
+
+    this.showCartFeedback();
+  }
+
+  ngOnDestroy(): void {
+
+    if (this.feedbackTimer) {
+      clearTimeout(this.feedbackTimer);
+    }
+  }
+
+  formatMoney(value: number | null | undefined): string {
+    return value == null ? '—' : value.toFixed(2);
+  }
+
+  private showCartFeedback(): void {
+
+    this.cartFeedback.set(true);
+
+    if (this.feedbackTimer) {
+      clearTimeout(this.feedbackTimer);
+    }
+
+    this.feedbackTimer = setTimeout(
+      () => this.cartFeedback.set(false),
+      2500
+    );
   }
 }

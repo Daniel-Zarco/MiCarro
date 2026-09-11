@@ -52,11 +52,13 @@ describe('App', () => {
 
     addButton.click();
     fixture.detectChanges();
-    expect(element.querySelector('.cart-button')?.textContent).toContain('Carrito (1)');
+    expect(element.querySelector('.cart-badge')?.textContent?.trim()).toBe('1');
 
-    addButton.click();
+    // Tras añadir, la card muestra los controles de cantidad.
+    const quantityButtons = element.querySelectorAll<HTMLButtonElement>('.card-quantity button');
+    quantityButtons[1].click();
     fixture.detectChanges();
-    expect(element.querySelector('.cart-button')?.textContent).toContain('Carrito (2)');
+    expect(element.querySelector('.cart-badge')?.textContent?.trim()).toBe('2');
   });
 
   it('abre el panel y permite aumentar, disminuir, eliminar y calcular el total', () => {
@@ -85,6 +87,6 @@ describe('App', () => {
     element.querySelector<HTMLButtonElement>('.remove-button')!.click();
     fixture.detectChanges();
     expect(element.querySelector('.empty-cart')).not.toBeNull();
-    expect(element.querySelector('.cart-button')?.textContent).toContain('Carrito (0)');
+    expect(element.querySelector('.cart-badge')).toBeNull();
   });
 });

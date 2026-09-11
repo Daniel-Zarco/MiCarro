@@ -1,7 +1,6 @@
 import { computed, effect, Injectable, signal } from '@angular/core';
 
-import { CartItem } from '../models/cart-item';
-import { Product } from '../models/product';
+import { CartItem, CartProduct } from '../models/cart-item';
 
 @Injectable({
   providedIn: 'root'
@@ -50,7 +49,15 @@ export class CartService {
     });
   }
 
-  addProduct(product: Product): void {
+  addProduct(product: CartProduct): void {
+    this.addItem(product, 1);
+  }
+
+  addItem(product: CartProduct, quantity: number): void {
+
+    if (quantity <= 0) {
+      return;
+    }
 
     const existingItem = this.cartItems()
       .find(item => item.product.id === product.id);
@@ -62,7 +69,7 @@ export class CartService {
           item.product.id === product.id
             ? {
                 ...item,
-                quantity: item.quantity + 1
+                quantity: item.quantity + quantity
               }
             : item
         )
@@ -75,7 +82,7 @@ export class CartService {
       ...items,
       {
         product,
-        quantity: 1
+        quantity
       }
     ]);
   }

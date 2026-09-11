@@ -23,7 +23,176 @@
     </header>
 
 
-    <div class="planner-form">
+    @if (preparedPlan(); as plan) {
+
+      <section
+        class="plan-preview"
+        aria-label="Tu compra propuesta"
+      >
+
+        <header class="plan-preview-header">
+          <span class="section-kicker">Resultado</span>
+
+          <h3>Tu compra propuesta</h3>
+
+          <p>Modo {{ planModeLabel(plan.mode) }}</p>
+        </header>
+
+
+        @if (plan.items.length === 0) {
+
+          <div class="plan-preview-empty">
+
+            <span
+              class="plan-preview-empty-icon"
+              aria-hidden="true"
+            >
+              <svg viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M4 7.5h16l-1.4 9.2a2.5 2.5 0 0 1-2.5 2.1H7.9a2.5 2.5 0 0 1-2.5-2.1L4 7.5Z"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M9 7.5c.2-2.3 1.1-3.5 3-3.5s2.8 1.2 3 3.5"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                />
+              </svg>
+            </span>
+
+            <strong>No hemos podido proponer productos</strong>
+
+            <p>
+              Prueba a subir el presupuesto o a cambiar
+              los productos solicitados.
+            </p>
+
+          </div>
+
+        } @else {
+
+          <ul class="plan-items">
+            @for (item of plan.items; track $index) {
+
+              <li class="plan-item">
+
+                <div class="plan-item-info">
+                  <strong>{{ item.name }}</strong>
+
+                  @if (item.format) {
+                    <span class="plan-item-format">
+                      {{ item.format }}
+                    </span>
+                  }
+                </div>
+
+                <div class="plan-item-numbers">
+                  <span class="plan-item-qty">
+                    {{ item.quantity ?? 1 }} ×
+                    {{ formatMoney(item.unitPrice) }} €
+                  </span>
+
+                  <strong class="plan-item-subtotal">
+                    {{ formatMoney(item.subtotal) }} €
+                  </strong>
+                </div>
+
+              </li>
+
+            }
+          </ul>
+
+
+          <dl class="plan-totals">
+
+            <div>
+              <dt>Presupuesto</dt>
+              <dd>{{ formatMoney(plan.budget) }} €</dd>
+            </div>
+
+            <div>
+              <dt>Total estimado</dt>
+              <dd>{{ formatMoney(plan.estimatedTotal) }} €</dd>
+            </div>
+
+            <div class="plan-totals-remaining">
+              <dt>Presupuesto restante</dt>
+              <dd>{{ formatMoney(plan.remainingBudget) }} €</dd>
+            </div>
+
+          </dl>
+
+        }
+
+
+        <div class="plan-actions">
+
+          <button
+            class="plan-add-all"
+            type="button"
+            (click)="addAllToCart()"
+            [disabled]="plan.items.length === 0"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M3.5 4.5h2l1.7 10.1a2 2 0 0 0 2 1.7h7.9a2 2 0 0 0 1.9-1.5l1.3-6.3H6.2"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+              <circle cx="9.5" cy="19.5" r="1.3" fill="currentColor" />
+              <circle cx="17.5" cy="19.5" r="1.3" fill="currentColor" />
+            </svg>
+
+            Añadir todo al carrito
+          </button>
+
+
+          <button
+            class="plan-reset"
+            type="button"
+            (click)="resetPlan()"
+          >
+            <span aria-hidden="true">←</span>
+            Volver a planificar
+          </button>
+
+        </div>
+
+
+        @if (cartFeedback()) {
+          <p class="plan-cart-feedback" role="status">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="m5 12.5 4.5 4.5L19 7.5"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+
+            Añadido al carrito
+          </p>
+        }
+
+      </section>
+
+    } @else {
+
+      <div class="planner-form">
 
       <div class="planner-grid">
 
@@ -172,9 +341,26 @@
             class="plan-submit"
             type="button"
             (click)="preparePlan()"
+            [disabled]="planLoading()"
+            [attr.aria-busy]="planLoading()"
           >
-            Preparar mi compra
+            @if (planLoading()) {
+              <span class="plan-spinner" aria-hidden="true"></span>
+              <span>Preparando…</span>
+            } @else {
+              <span>Preparar mi compra</span>
+            }
           </button>
+
+
+          @if (planError()) {
+            <p
+              class="planner-error"
+              role="alert"
+            >
+              {{ planError() }}
+            </p>
+          }
 
         </div>
 
@@ -182,44 +368,6 @@
 
     </div>
 
-
-    @if (preparedPlan(); as plan) {
-      <footer class="plan-success" role="status">
-
-        <span class="plan-success-icon" aria-hidden="true">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-          >
-            <path
-              d="m5 12.5 4.5 4.5L19 7.5"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </span>
-
-        <div>
-          <strong>
-            Configuración preparada
-          </strong>
-
-          <p>
-            Presupuesto:
-            <b>{{ plan.budget }} €</b>
-            · {{ plan.items.length }}
-            {{
-              plan.items.length === 1
-                ? 'producto'
-                : 'productos'
-            }}
-            · {{ planModeLabel(plan.mode) }}.
-          </p>
-        </div>
-
-      </footer>
     }
 
   </div>

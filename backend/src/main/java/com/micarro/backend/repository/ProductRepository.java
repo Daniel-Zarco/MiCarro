@@ -12,8 +12,29 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Optional<Product> findByExternalId(String externalId);
 
+    Page<Product> findByNameIgnoreCase(
+            String name,
+            Pageable pageable
+    );
+
+    Page<Product> findByNameStartingWithIgnoreCase(
+            String name,
+            Pageable pageable
+    );
+
+    Page<Product> findByCategoryContainingIgnoreCase(
+            String category,
+            Pageable pageable
+    );
+
     Page<Product> findByNameContainingIgnoreCase(
             String name,
+            Pageable pageable
+    );
+
+    Page<Product> findByBrandContainingIgnoreCaseOrCategoryContainingIgnoreCase(
+            String brand,
+            String category,
             Pageable pageable
     );
 }
