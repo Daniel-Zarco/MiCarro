@@ -1,0 +1,227 @@
+<section
+  class="planner"
+  aria-labelledby="planner-title"
+>
+
+  <div class="planner-card">
+
+    <header class="planner-header">
+
+      <span class="section-kicker">
+        Planifica tu compra
+      </span>
+
+      <h2 id="planner-title">
+        Prepara tu compra
+      </h2>
+
+      <p>
+        Configura tu presupuesto y lo que necesitas.
+        La siguiente fase preparará tu lista.
+      </p>
+
+    </header>
+
+
+    <div class="planner-form">
+
+      <div class="planner-grid">
+
+        <!-- ========== COLUMNA IZQUIERDA ========== -->
+        <div class="planner-fields">
+
+          <label class="planner-label" for="plan-budget">
+            Presupuesto
+          </label>
+
+          <div class="planner-input">
+            <span class="planner-currency" aria-hidden="true">€</span>
+            <input
+              id="plan-budget"
+              type="number"
+              min="0"
+              step="1"
+              inputmode="decimal"
+              placeholder="Introduce tu presupuesto"
+              autocomplete="off"
+              (input)="onBudgetInput($event)"
+              [attr.aria-invalid]="planSubmitted() && !budgetValid()"
+            >
+          </div>
+
+
+          @if (planSubmitted() && !budgetValid()) {
+            <p
+              class="planner-error"
+              role="alert"
+            >
+              Introduce un presupuesto válido mayor que 0.
+            </p>
+          }
+
+
+          <label class="planner-label" for="plan-needs">
+            Productos que necesitas
+          </label>
+
+          <textarea
+            id="plan-needs"
+            rows="3"
+            placeholder="pollo, arroz, setas, yogures"
+            (input)="onNeedsInput($event)"
+            [attr.aria-invalid]="planSubmitted() && !needsValid()"
+          ></textarea>
+
+          <p class="planner-hint">
+            Sepáralos con comas o saltos de línea.
+          </p>
+
+
+          @if (planSubmitted() && !needsValid()) {
+            <p
+              class="planner-error"
+              role="alert"
+            >
+              Indica al menos un producto que necesites.
+            </p>
+          }
+
+        </div>
+
+
+        <!-- ========== COLUMNA DERECHA ========== -->
+        <div class="planner-fields">
+
+          <fieldset class="planner-fieldset">
+            <legend class="planner-label">
+              Tipo de compra
+            </legend>
+
+            <div class="plan-mode-options">
+              @for (
+                option of planModeOptions;
+                track option.value
+              ) {
+
+                <label
+                  class="plan-mode-option"
+                  [class.is-selected]="planMode() === option.value"
+                >
+                  <input
+                    type="radio"
+                    name="plan-mode"
+                    [value]="option.value"
+                    [checked]="planMode() === option.value"
+                    (change)="setPlanMode(option.value)"
+                  >
+
+                  <span class="plan-mode-card">
+                    <strong>{{ option.label }}</strong>
+                    <small>{{ option.hint }}</small>
+                  </span>
+                </label>
+
+              }
+            </div>
+          </fieldset>
+
+
+          <fieldset class="planner-fieldset">
+            <legend class="planner-label">
+              Preferencias
+            </legend>
+
+            <div class="plan-preferences">
+
+              <label class="plan-switch">
+                <input
+                  type="checkbox"
+                  [checked]="prioritizeFavorites()"
+                  (change)="togglePrioritizeFavorites()"
+                >
+
+                <span class="plan-switch-track" aria-hidden="true"></span>
+
+                <span class="plan-switch-copy">
+                  <strong>Priorizar mis favoritos</strong>
+                  <small>Dar preferencia a los productos que has marcado.</small>
+                </span>
+              </label>
+
+
+              <label class="plan-switch">
+                <input
+                  type="checkbox"
+                  [checked]="maximizeBudget()"
+                  (change)="toggleMaximizeBudget()"
+                >
+
+                <span class="plan-switch-track" aria-hidden="true"></span>
+
+                <span class="plan-switch-copy">
+                  <strong>Aprovechar al máximo el presupuesto</strong>
+                  <small>Intentar usar todo lo disponible.</small>
+                </span>
+              </label>
+
+            </div>
+          </fieldset>
+
+
+          <button
+            class="plan-submit"
+            type="button"
+            (click)="preparePlan()"
+          >
+            Preparar mi compra
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    @if (preparedPlan(); as plan) {
+      <footer class="plan-success" role="status">
+
+        <span class="plan-success-icon" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+          >
+            <path
+              d="m5 12.5 4.5 4.5L19 7.5"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </span>
+
+        <div>
+          <strong>
+            Configuración preparada
+          </strong>
+
+          <p>
+            Presupuesto:
+            <b>{{ plan.budget }} €</b>
+            · {{ plan.items.length }}
+            {{
+              plan.items.length === 1
+                ? 'producto'
+                : 'productos'
+            }}
+            · {{ planModeLabel(plan.mode) }}.
+          </p>
+        </div>
+
+      </footer>
+    }
+
+  </div>
+
+</section>

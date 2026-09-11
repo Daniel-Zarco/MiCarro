@@ -13,12 +13,14 @@ import { Product } from './models/product';
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
 import { FavoriteService } from './services/favorite.service';
+import { PlannerComponent } from './planner/planner.component';
 
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
+  imports: [PlannerComponent]
 })
 export class App implements OnInit, OnDestroy {
 
@@ -72,6 +74,8 @@ export class App implements OnInit, OnDestroy {
   // =========================
 
   protected readonly cartOpen = signal(false);
+
+  protected readonly plannerOpen = signal(false);
 
 
   // =========================
@@ -247,6 +251,10 @@ export class App implements OnInit, OnDestroy {
 
   protected closeCart(): void {
     this.cartOpen.set(false);
+  }
+
+  protected togglePlanner(): void {
+    this.plannerOpen.update(open => !open);
   }
 
   

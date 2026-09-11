@@ -1,0 +1,582 @@
+.planner {
+  max-width: 860px;
+
+  margin: 0 auto;
+
+  padding:
+    38px
+    0
+    6px;
+}
+
+.section-kicker {
+  display: block;
+
+  color: var(--green);
+
+  font-size: 0.71rem;
+  font-weight: 800;
+
+  letter-spacing: 0.13em;
+
+  text-transform: uppercase;
+}
+
+.planner-card {
+  padding: 28px;
+
+  border:
+    1px solid
+    rgba(47, 111, 85, 0.12);
+
+  border-radius: 26px;
+
+  background: var(--paper);
+
+  box-shadow:
+    0 16px 40px
+    rgba(23, 56, 44, 0.06);
+}
+
+.planner-header {
+  max-width: 640px;
+  margin-bottom: 22px;
+}
+
+.planner-header h2 {
+  margin:
+    6px 0
+    8px;
+
+  font-size:
+    clamp(
+      1.5rem,
+      2.5vw,
+      2rem
+    );
+
+  font-weight: 750;
+
+  letter-spacing: -0.04em;
+}
+
+.planner-header p {
+  margin: 0;
+
+  color: var(--muted);
+
+  font-size: 0.9rem;
+
+  line-height: 1.55;
+}
+
+.planner-grid {
+  display: grid;
+
+  grid-template-columns:
+    minmax(0, 1fr)
+    minmax(0, 1.1fr);
+
+  gap: 44px;
+}
+
+.planner-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planner-label {
+  margin-top: 10px;
+
+  color: var(--ink-soft);
+
+  font-size: 0.8rem;
+  font-weight: 800;
+
+  letter-spacing: 0.02em;
+}
+
+.planner-label:first-child {
+  margin-top: 0;
+}
+
+.planner-input {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+}
+
+.planner-input input {
+  width: 100%;
+  max-width: 200px;
+  height: 44px;
+
+  padding:
+    0
+    14px
+    0
+    34px;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 12px;
+
+  outline: none;
+
+  background: white;
+
+  color: var(--ink);
+
+  font: inherit;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.planner-input input:focus {
+  border-color:
+    rgba(47, 111, 85, 0.45);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(47, 111, 85, 0.08);
+}
+
+.planner-currency {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: var(--muted);
+
+  font-size: 0.88rem;
+  font-weight: 750;
+
+  pointer-events: none;
+}
+
+.planner-fields textarea {
+  width: 100%;
+  max-width: 400px;
+  min-height: 84px;
+
+  padding: 11px 14px;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 12px;
+
+  outline: none;
+
+  background: white;
+
+  color: var(--ink);
+
+  font: inherit;
+  font-size: 0.88rem;
+
+  resize: vertical;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.planner-fields textarea:focus {
+  border-color:
+    rgba(47, 111, 85, 0.45);
+
+  box-shadow:
+    0 0 0 4px
+    rgba(47, 111, 85, 0.08);
+}
+
+.planner-hint {
+  margin: 3px 0 0;
+
+  color: var(--muted-light);
+
+  font-size: 0.71rem;
+}
+
+.planner-error {
+  margin: 2px 0 0;
+
+  color: var(--danger);
+
+  font-size: 0.77rem;
+  font-weight: 650;
+}
+
+
+/* ----- Tipo de compra ----- */
+
+.planner-fieldset {
+  margin: 14px 0 0;
+  padding: 0;
+
+  border: 0;
+}
+
+.planner-fieldset:first-child {
+  margin-top: 0;
+}
+
+.planner-fieldset .planner-label {
+  margin-bottom: 10px;
+}
+
+.plan-mode-options {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 8px;
+}
+
+.plan-mode-option {
+  position: relative;
+}
+
+.plan-mode-option input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+
+  pointer-events: none;
+}
+
+.plan-mode-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  min-height: 58px;
+
+  padding:
+    9px 12px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 12px;
+
+  background: white;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.plan-mode-card strong {
+  color: var(--ink-soft);
+
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.plan-mode-card small {
+  color: var(--muted);
+
+  font-size: 0.67rem;
+  line-height: 1.25;
+
+  white-space: pre-line;
+}
+
+.plan-mode-option:hover .plan-mode-card {
+  border-color:
+    rgba(47, 111, 85, 0.35);
+}
+
+.plan-mode-option.is-selected .plan-mode-card {
+  border-color: var(--green);
+
+  background: var(--green-pale);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(47, 111, 85, 0.08);
+}
+
+.plan-mode-option.is-selected .plan-mode-card strong {
+  color: var(--green-dark);
+}
+
+
+/* ----- Preferencias ----- */
+
+.plan-preferences {
+  display: grid;
+  gap: 8px;
+}
+
+.plan-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding:
+    10px 14px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 12px;
+
+  background: white;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.plan-switch:hover {
+  border-color:
+    rgba(47, 111, 85, 0.3);
+}
+
+.plan-switch input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+
+  pointer-events: none;
+}
+
+.plan-switch-track {
+  position: relative;
+
+  width: 42px;
+  height: 24px;
+
+  flex: 0 0 auto;
+
+  border-radius: 999px;
+
+  background: var(--line-strong);
+
+  transition: background 0.2s ease;
+}
+
+.plan-switch-track::after {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+
+  width: 18px;
+  height: 18px;
+
+  border-radius: 50%;
+
+  background: white;
+
+  content: "";
+
+  box-shadow:
+    0 2px 6px
+    rgba(23, 56, 44, 0.18);
+
+  transition: transform 0.2s ease;
+}
+
+.plan-switch input:checked + .plan-switch-track {
+  background: var(--green);
+}
+
+.plan-switch input:checked + .plan-switch-track::after {
+  transform: translateX(18px);
+}
+
+.plan-mode-option:has(input:focus-visible) .plan-mode-card {
+  outline:
+    3px solid
+    rgba(241, 206, 106, 0.7);
+
+  outline-offset: 2px;
+}
+
+.plan-switch:has(input:focus-visible) {
+  box-shadow:
+    0 0 0 3px
+    rgba(241, 206, 106, 0.45);
+}
+
+.plan-switch-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-switch-copy strong {
+  color: var(--ink-soft);
+
+  font-size: 0.83rem;
+  font-weight: 800;
+}
+
+.plan-switch-copy small {
+  color: var(--muted);
+
+  font-size: 0.71rem;
+  line-height: 1.3;
+}
+
+
+/* ----- Botón / éxito ----- */
+
+.plan-submit {
+  align-self: flex-start;
+
+  min-height: 44px;
+
+  margin-top: 18px;
+
+  padding:
+    11px 20px;
+
+  border:
+    1px solid
+    var(--green);
+
+  border-radius: 12px;
+
+  background: var(--green);
+
+  color: white;
+
+  font-size: 0.9rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.plan-submit:hover {
+  background: var(--green-dark);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 18px
+    rgba(47, 111, 85, 0.15);
+}
+
+.plan-success {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+
+  margin-top: 22px;
+
+  padding: 14px 16px;
+
+  border:
+    1px solid
+    rgba(47, 111, 85, 0.18);
+
+  border-radius: 14px;
+
+  background: var(--green-pale);
+}
+
+.plan-success-icon {
+  display: grid;
+
+  width: 32px;
+  height: 32px;
+
+  flex: 0 0 auto;
+
+  place-items: center;
+
+  border-radius: 10px;
+
+  background: var(--green);
+
+  color: white;
+}
+
+.plan-success-icon svg {
+  width: 17px;
+}
+
+.plan-success strong {
+  display: block;
+
+  color: var(--green-dark);
+
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.plan-success p {
+  margin:
+    3px 0 0;
+
+  color: var(--ink-soft);
+
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.plan-success b {
+  color: var(--green-dark);
+
+  font-weight: 800;
+}
+
+
+@media (max-width: 850px) {
+
+  .planner-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .planner-card {
+    padding: 22px;
+  }
+}
+
+
+@media (max-width: 560px) {
+
+  .planner-card {
+    padding: 18px;
+  }
+
+  .plan-mode-options {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-submit {
+    align-self: stretch;
+  }
+}

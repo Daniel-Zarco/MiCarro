@@ -429,6 +429,67 @@ button {
 }
 
 
+.planner-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-height: 46px;
+
+  padding:
+    8px
+    9px
+    8px
+    15px;
+
+  border:
+    1px solid
+    rgba(47, 111, 85, 0.18);
+
+  border-radius: 14px;
+
+  background:
+    rgba(247, 244, 236, 0.7);
+
+  color: var(--ink-soft);
+
+  font-size: 0.9rem;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.planner-button:hover {
+  border-color: var(--green);
+
+  background: var(--cream);
+
+  color: var(--green);
+}
+
+.planner-button-icon {
+  width: 19px;
+  height: 19px;
+
+  color: var(--green);
+}
+
+.planner-button-chevron {
+  width: 16px;
+  height: 16px;
+
+  color: var(--muted);
+
+  transition: transform 0.25s ease;
+}
+
+.planner-button.is-open .planner-button-chevron {
+  transform: rotate(180deg);
+}
+
+
 /* =========================
    FOCUS
    ========================= */
@@ -540,6 +601,36 @@ input:focus-visible {
 
 .search-input:focus {
   outline: none;
+}
+
+
+/* =========================
+   PLANNER PANEL
+   ========================= */
+
+.planner-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition: grid-template-rows 0.4s ease, opacity 0.3s ease;
+}
+
+.planner-wrap.is-open {
+  grid-template-rows: 1fr;
+
+  opacity: 1;
+
+  pointer-events: auto;
+}
+
+.planner-collapsible {
+  min-height: 0;
+
+  overflow: hidden;
 }
 
 
@@ -1994,6 +2085,24 @@ input:focus-visible {
 
   .favorites-button > span:not(.favorites-badge) {
     display: none;
+  }
+
+  .planner-button {
+    min-height: 42px;
+
+    padding:
+      7px
+      8px
+      7px
+      12px;
+  }
+
+  .planner-button > span {
+    display: none;
+  }
+
+  .planner-button-chevron {
+    margin-left: 4px;
   }
 
   .main {

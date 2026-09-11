@@ -72,6 +72,56 @@
   <div class="header-actions">
 
     <button
+      class="planner-button"
+      type="button"
+      (click)="togglePlanner()"
+      [class.is-open]="plannerOpen()"
+      [attr.aria-expanded]="plannerOpen()"
+      aria-controls="planner-panel"
+      aria-label="Abrir el planificador de compra"
+    >
+      <svg
+        class="planner-button-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 3.5c.3 2.9 1.6 4.2 4.5 4.5-2.9.3-4.2 1.6-4.5 4.5-.3-2.9-1.6-4.2-4.5-4.5 2.9-.3 4.2-1.6 4.5-4.5Z"
+          fill="currentColor"
+        />
+
+        <path
+          d="M18.4 13.5c.2 1.9 1 2.7 2.9 2.9-1.9.2-2.7 1-2.9 2.9-.2-1.9-1-2.7-2.9-2.9 1.9-.2 2.7-1 2.9-2.9Z"
+          fill="currentColor"
+        />
+
+        <path
+          d="M6.5 12.5c.2 1.6.9 2.3 2.5 2.5-1.6.2-2.3.9-2.5 2.5-.2-1.6-.9-2.3-2.5-2.5 1.6-.2 2.3-.9 2.5-2.5Z"
+          fill="currentColor"
+        />
+      </svg>
+
+      <span>Planifica tu compra</span>
+
+      <svg
+        class="planner-button-chevron"
+        viewBox="0 0 20 20"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="m6 7.5 4 4 4-4"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+
+    <button
       class="favorites-button"
       type="button"
       (click)="toggleFavorites()"
@@ -185,6 +235,23 @@
       
       </div>
     </section>
+
+
+    <!-- =========================
+         PLANNER PANEL
+         ========================= -->
+    <div
+      class="planner-wrap"
+      id="planner-panel"
+      [class.is-open]="plannerOpen()"
+      [attr.inert]="plannerOpen() ? null : ''"
+    >
+      <div class="planner-collapsible">
+
+        <app-planner></app-planner>
+
+      </div>
+    </div>
 
 
       <!-- =========================
