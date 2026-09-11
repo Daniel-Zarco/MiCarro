@@ -1,6 +1,9 @@
 package com.micarro.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -17,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.micarro.backend.dto.ShoppingPlanItemResponse;
 import com.micarro.backend.dto.ShoppingPlanRequest;
 import com.micarro.backend.dto.ShoppingPlanResponse;
+import com.micarro.backend.dto.ShoppingPreferences;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.model.ShoppingMode;
 import com.micarro.backend.strategy.BalancedShoppingStrategy;
@@ -28,6 +32,9 @@ class ShoppingPlanServiceTest {
 
     @Mock
     private CandidateSelectionService candidateSelectionService;
+
+    @Mock
+    private FavoriteService favoriteService;
 
     private ShoppingPlanService shoppingPlanService;
 
@@ -46,7 +53,9 @@ class ShoppingPlanServiceTest {
                 candidateSelectionService,
                 scoringEngineService,
                 new ProductSelectionService(),
-                new BudgetOptimizer()
+                new BudgetOptimizer(),
+                new BudgetMaximizer(),
+                favoriteService
         );
     }
 
@@ -80,6 +89,21 @@ class ShoppingPlanServiceTest {
         return request;
     }
 
+    private ShoppingPreferences preferences(boolean prioritizeFavorites) {
+        return preferences(prioritizeFavorites, false);
+    }
+
+    private ShoppingPreferences preferences(
+            boolean prioritizeFavorites,
+            boolean maximizeBudget) {
+
+        ShoppingPreferences preferences = new ShoppingPreferences();
+        preferences.setPrioritizeFavorites(prioritizeFavorites);
+        preferences.setMaximizeBudget(maximizeBudget);
+
+        return preferences;
+    }
+
     @Test
     void plan_buildsItemFromWinnerWithQuantityOneAndSubtotalEqualUnitPrice() {
 
@@ -92,7 +116,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(Map.of("pollo", List.of(pollo)));
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         assertThat(response.getItems()).hasSize(1);
 
@@ -127,7 +151,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(candidates);
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         assertThat(response.getItems()).hasSize(2);
         assertThat(response.getEstimatedTotal()).isEqualByComparingTo("15.50");
@@ -149,7 +173,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(candidates);
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         assertThat(response.getItems()).hasSize(1);
         assertThat(response.getItems().get(0).getName()).isEqualTo("Pollo");
@@ -167,7 +191,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(Map.of("pollo", List.of(pollo)));
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         assertThat(response.getItems()).isEmpty();
         assertThat(response.getEstimatedTotal()).isEqualByComparingTo("0");
@@ -190,7 +214,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(candidates);
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         // Ambos candidatos puntúan igual (un único candidato por término), así
         // que el desempate elimina primero el más caro ("pollo").
@@ -211,7 +235,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(Map.of("pollo", List.of(pollo)));
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         assertThat(response.getItems()).hasSize(1);
         assertThat(response.getItems().get(0).getUnitPrice()).isNull();
@@ -232,7 +256,7 @@ class ShoppingPlanServiceTest {
         when(candidateSelectionService.selectCandidates(request))
                 .thenReturn(Map.of("pollo", List.of(prefix, exact)));
 
-        ShoppingPlanResponse response = shoppingPlanService.plan(request);
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
 
         assertThat(response.getItems()).hasSize(1);
         assertThat(response.getItems().get(0).getProductId()).isEqualTo(1L);
@@ -259,10 +283,146 @@ class ShoppingPlanServiceTest {
                 .thenReturn(Map.of("pollo", List.of(exact, categoryMatch)));
 
         // CHEAP favorece el más barato; QUALITY favorece la relevancia.
-        assertThat(shoppingPlanService.plan(cheap).getItems().get(0).getProductId())
+        assertThat(shoppingPlanService.plan(cheap, null).getItems().get(0).getProductId())
                 .isEqualTo(2L);
 
-        assertThat(shoppingPlanService.plan(quality).getItems().get(0).getProductId())
+        assertThat(shoppingPlanService.plan(quality, null).getItems().get(0).getProductId())
                 .isEqualTo(1L);
+    }
+
+    @Test
+    void plan_guestDoesNotConsultFavorites() {
+
+        Product pollo = product(1, "Pollo", null, null, "10.00");
+
+        ShoppingPlanRequest request =
+                request("60", ShoppingMode.BALANCED, List.of("pollo"));
+
+        when(candidateSelectionService.selectCandidates(request))
+                .thenReturn(Map.of("pollo", List.of(pollo)));
+
+        shoppingPlanService.plan(request, null);
+
+        verifyNoInteractions(favoriteService);
+    }
+
+    @Test
+    void plan_authenticatedWithoutPrioritizeFavoritesDoesNotConsultFavorites() {
+
+        Product pollo = product(1, "Pollo", null, null, "10.00");
+
+        ShoppingPlanRequest request =
+                request("60", ShoppingMode.BALANCED, List.of("pollo"));
+        request.setPreferences(preferences(false));
+
+        when(candidateSelectionService.selectCandidates(request))
+                .thenReturn(Map.of("pollo", List.of(pollo)));
+
+        shoppingPlanService.plan(request, "dani@example.com");
+
+        verify(favoriteService, never()).getFavorites("dani@example.com");
+    }
+
+    @Test
+    void plan_authenticatedWithPrioritizeFavoritesLetsFavoriteWin() {
+
+        // Ambos con la misma relevancia y precio; solo uno es favorito.
+        Product other = product(1, "Ala", null, null, "10.00");
+        other.setCategory("Pollo");
+
+        Product favorite = product(2, "Muslo", null, null, "10.00");
+        favorite.setCategory("Pollo");
+
+        ShoppingPlanRequest request =
+                request("60", ShoppingMode.BALANCED, List.of("pollo"));
+        request.setPreferences(preferences(true));
+
+        when(candidateSelectionService.selectCandidates(request))
+                .thenReturn(Map.of("pollo", List.of(other, favorite)));
+        when(favoriteService.getFavorites("dani@example.com"))
+                .thenReturn(List.of(favorite));
+
+        ShoppingPlanResponse response =
+                shoppingPlanService.plan(request, "dani@example.com");
+
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getProductId()).isEqualTo(2L);
+    }
+
+    @Test
+    void plan_withoutSessionKeepsDeterministicTieBreak() {
+
+        Product other = product(1, "Ala", null, null, "10.00");
+        other.setCategory("Pollo");
+
+        Product favorite = product(2, "Muslo", null, null, "10.00");
+        favorite.setCategory("Pollo");
+
+        ShoppingPlanRequest request =
+                request("60", ShoppingMode.BALANCED, List.of("pollo"));
+        request.setPreferences(preferences(true));
+
+        when(candidateSelectionService.selectCandidates(request))
+                .thenReturn(Map.of("pollo", List.of(other, favorite)));
+
+        // Invitado: sin favoritos, empate resuelto por el menor id.
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
+
+        assertThat(response.getItems().get(0).getProductId()).isEqualTo(1L);
+        verifyNoInteractions(favoriteService);
+    }
+
+    @Test
+    void plan_maximizeBudgetFalseKeepsQuantityOne() {
+
+        Product pollo = product(1, "Pollo", null, null, "5.00");
+
+        ShoppingPlanRequest request =
+                request("20", ShoppingMode.BALANCED, List.of("pollo"));
+        request.setPreferences(preferences(false, false));
+
+        when(candidateSelectionService.selectCandidates(request))
+                .thenReturn(Map.of("pollo", List.of(pollo)));
+
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
+
+        assertThat(response.getItems()).hasSize(1);
+        assertThat(response.getItems().get(0).getQuantity()).isEqualTo(1);
+        assertThat(response.getEstimatedTotal()).isEqualByComparingTo("5.00");
+        assertThat(response.getRemainingBudget()).isEqualByComparingTo("15.00");
+    }
+
+    @Test
+    void plan_maximizeBudgetTrueIncreasesQuantitiesWithoutExceeding() {
+
+        Product pollo = product(1, "Pollo", null, null, "5.00");
+        Product arroz = product(2, "Arroz", null, null, "5.00");
+
+        ShoppingPlanRequest request =
+                request("20", ShoppingMode.BALANCED, List.of("pollo", "arroz"));
+        request.setPreferences(preferences(false, true));
+
+        Map<String, List<Product>> candidates = new LinkedHashMap<>();
+        candidates.put("pollo", List.of(pollo));
+        candidates.put("arroz", List.of(arroz));
+
+        when(candidateSelectionService.selectCandidates(request))
+                .thenReturn(candidates);
+
+        ShoppingPlanResponse response = shoppingPlanService.plan(request, null);
+
+        assertThat(response.getItems()).hasSize(2);
+
+        assertThat(response.getEstimatedTotal())
+                .isGreaterThan(new BigDecimal("10.00"));
+
+        assertThat(response.getEstimatedTotal())
+                .isLessThanOrEqualTo(new BigDecimal("20.00"));
+
+        assertThat(response.getRemainingBudget())
+                .isEqualByComparingTo(
+                        new BigDecimal("20.00")
+                                .subtract(response.getEstimatedTotal())
+                );
     }
 }

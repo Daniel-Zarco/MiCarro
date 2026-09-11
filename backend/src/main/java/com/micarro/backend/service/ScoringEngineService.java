@@ -6,6 +6,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
@@ -55,11 +56,16 @@ public class ScoringEngineService {
      * <p>No selecciona ganador ni optimiza presupuesto: solo calcula las
      * puntuaciones. Los resultados se devuelven en el mismo orden que los
      * candidatos recibidos.</p>
+     *
+     * <p>{@code favoriteProductIds} contiene los favoritos que deben puntuar
+     * (vacío si es invitado, no está activada la preferencia o no hay sesión).
+     * El favorito puntúa 1.0 y el resto 0.0.</p>
      */
     public List<ProductScore> scoreCandidates(
             String term,
             List<Product> candidates,
-            ShoppingPlanRequest request) {
+            ShoppingPlanRequest request,
+            Set<Long> favoriteProductIds) {
 
         if (candidates == null || candidates.isEmpty()) {
             return List.of();
@@ -76,11 +82,12 @@ public class ScoringEngineService {
 
             double relevanceScore = relevanceScore(term, candidate);
             double priceScore = priceScore(candidate, minPrice, maxPrice);
-            double favoriteScore = favoriteScore(candidate, request);
+            double favoriteScore = favoriteScore(candidate, favoriteProductIds);
 
             double finalScore =
                     relevanceScore * strategy.relevanceWeight()
-                            + priceScore * strategy.priceWeight();
+                            + priceScore * strategy.priceWeight()
+                            + favoriteScore * strategy.favoriteWeight();
 
             scores.add(new ProductScore(
                     candidate,
@@ -171,11 +178,20 @@ public class ScoringEngineService {
     }
 
     /*
-     * Aún no hay usuarios ni favoritos en backend, por lo que la puntuación
-     * de favoritos queda preparada pero siempre a 0.
+     * Un favorito puntúa 1.0 y el resto 0.0. La lista llega vacía cuando no
+     * debe aplicarse (invitado, sin preferencia activada o sin sesión).
      */
-    private double favoriteScore(Product product, ShoppingPlanRequest request) {
-        return 0.0;
+    private double favoriteScore(
+            Product product,
+            Set<Long> favoriteProductIds) {
+
+        if (favoriteProductIds == null
+                || favoriteProductIds.isEmpty()
+                || product.getId() == null) {
+            return 0.0;
+        }
+
+        return favoriteProductIds.contains(product.getId()) ? 1.0 : 0.0;
     }
 
     private BigDecimal minPrice(List<Product> candidates) {

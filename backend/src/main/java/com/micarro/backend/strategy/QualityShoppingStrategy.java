@@ -5,18 +5,19 @@ import org.springframework.stereotype.Component;
 import com.micarro.backend.model.ShoppingMode;
 
 /**
- * Estrategia de calidad: prioriza la relevancia.
+ * Estrategia de calidad: prioriza la relevancia, con un peso residual al
+ * precio y un peso moderado para los favoritos.
  *
- * <p>Importante: un precio alto NO se interpreta como mayor calidad. Por ahora
- * esta estrategia solo da más peso a la relevancia y un peso residual al
- * precio. Las métricas reales de calidad (valoraciones, origen, etc.) se
- * incorporarán cuando existan datos fiables.</p>
+ * <p>Importante: un precio alto NO se interpreta como mayor calidad. Las
+ * métricas reales de calidad (valoraciones, origen, etc.) se incorporarán
+ * cuando existan datos fiables.</p>
  */
 @Component
 public class QualityShoppingStrategy implements ShoppingStrategy {
 
-    private static final double RELEVANCE_WEIGHT = 0.90;
-    private static final double PRICE_WEIGHT = 0.10;
+    private static final double RELEVANCE_WEIGHT = 0.80;
+    private static final double PRICE_WEIGHT = 0.05;
+    private static final double FAVORITE_WEIGHT = 0.15;
 
     @Override
     public ShoppingMode mode() {
@@ -31,5 +32,10 @@ public class QualityShoppingStrategy implements ShoppingStrategy {
     @Override
     public double priceWeight() {
         return PRICE_WEIGHT;
+    }
+
+    @Override
+    public double favoriteWeight() {
+        return FAVORITE_WEIGHT;
     }
 }

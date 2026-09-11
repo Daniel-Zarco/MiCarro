@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.within;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
@@ -21,6 +22,8 @@ class ScoringEngineServiceTest {
     private static final CheapShoppingStrategy CHEAP = new CheapShoppingStrategy();
     private static final BalancedShoppingStrategy BALANCED = new BalancedShoppingStrategy();
     private static final QualityShoppingStrategy QUALITY = new QualityShoppingStrategy();
+
+    private static final Set<Long> NO_FAVORITES = Set.of();
 
     private final ScoringEngineService scoringEngineService =
             new ScoringEngineService(List.of(CHEAP, BALANCED, QUALITY));
@@ -75,7 +78,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(exact, prefix, category, contains, fallback),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores)
@@ -100,7 +104,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(exact, prefixAndCategory, categoryOnly, prefixOnly),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores)
@@ -121,7 +126,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "PoLlO",
                 List.of(pollo),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getRelevanceScore())
@@ -137,7 +143,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(cheap, expensive),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getPriceScore()).isCloseTo(1.0, within(1e-9));
@@ -154,7 +161,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(cheap, middle, expensive),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(1).getPriceScore()).isCloseTo(0.5, within(1e-9));
@@ -169,7 +177,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(first, second),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores)
@@ -186,7 +195,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(withoutPrice, withPrice),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getPriceScore()).isZero();
@@ -201,7 +211,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(exact, prefix),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         double expectedExact =
@@ -222,7 +233,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 modeScenario(),
-                request(ShoppingMode.CHEAP)
+                request(ShoppingMode.CHEAP),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getFinalScore())
@@ -244,7 +256,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 modeScenario(),
-                request(ShoppingMode.BALANCED)
+                request(ShoppingMode.BALANCED),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getFinalScore())
@@ -266,7 +279,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 modeScenario(),
-                request(ShoppingMode.QUALITY)
+                request(ShoppingMode.QUALITY),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getFinalScore())
@@ -286,13 +300,13 @@ class ScoringEngineServiceTest {
     void scoreCandidates_modesProduceDifferentResults() {
 
         List<ProductScore> cheap = scoringEngineService.scoreCandidates(
-                "pollo", modeScenario(), request(ShoppingMode.CHEAP));
+                "pollo", modeScenario(), request(ShoppingMode.CHEAP), NO_FAVORITES);
 
         List<ProductScore> balanced = scoringEngineService.scoreCandidates(
-                "pollo", modeScenario(), request(ShoppingMode.BALANCED));
+                "pollo", modeScenario(), request(ShoppingMode.BALANCED), NO_FAVORITES);
 
         List<ProductScore> quality = scoringEngineService.scoreCandidates(
-                "pollo", modeScenario(), request(ShoppingMode.QUALITY));
+                "pollo", modeScenario(), request(ShoppingMode.QUALITY), NO_FAVORITES);
 
         double cheapExact = cheap.get(0).getFinalScore();
         double balancedExact = balanced.get(0).getFinalScore();
@@ -315,7 +329,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 modeScenario(),
-                new ShoppingPlanRequest()
+                new ShoppingPlanRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getFinalScore())
@@ -334,7 +349,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(relevant, irrelevant),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         // Aunque sea más caro, la coincidencia exacta de nombre pesa más.
@@ -343,16 +359,56 @@ class ScoringEngineServiceTest {
     }
 
     @Test
-    void scoreCandidates_favoriteScoreIsZeroForNow() {
+    void scoreCandidates_guestHasZeroFavoriteScore() {
+
         Product pollo = product(1, "Pollo", null, null, "10");
 
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(pollo),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores.get(0).getFavoriteScore()).isZero();
+    }
+
+    @Test
+    void scoreCandidates_marksFavoriteWithFavoriteScore() {
+
+        Product favorite = product(1, "Pollo", null, null, "10");
+        Product other = product(2, "Pollo asado", null, null, "10");
+
+        List<ProductScore> scores = scoringEngineService.scoreCandidates(
+                "pollo",
+                List.of(favorite, other),
+                balancedRequest(),
+                Set.of(1L)
+        );
+
+        assertThat(scores.get(0).getFavoriteScore()).isEqualTo(1.0);
+        assertThat(scores.get(1).getFavoriteScore()).isZero();
+    }
+
+    @Test
+    void scoreCandidates_favoriteIncreasesFinalScore() {
+
+        // Dos productos idénticos salvo que uno es favorito.
+        Product favorite = product(1, "Pollo", null, null, "10");
+        Product other = product(2, "Pollo", null, null, "10");
+
+        List<ProductScore> scores = scoringEngineService.scoreCandidates(
+                "pollo",
+                List.of(favorite, other),
+                balancedRequest(),
+                Set.of(1L)
+        );
+
+        assertThat(scores.get(0).getFinalScore())
+                .isGreaterThan(scores.get(1).getFinalScore());
+
+        assertThat(scores.get(0).getFinalScore() - scores.get(1).getFinalScore())
+                .isCloseTo(BALANCED.favoriteWeight(), within(1e-9));
     }
 
     @Test
@@ -364,7 +420,8 @@ class ScoringEngineServiceTest {
         List<ProductScore> scores = scoringEngineService.scoreCandidates(
                 "pollo",
                 List.of(first, second),
-                balancedRequest()
+                balancedRequest(),
+                NO_FAVORITES
         );
 
         assertThat(scores)
@@ -376,11 +433,11 @@ class ScoringEngineServiceTest {
     void scoreCandidates_returnsEmptyWhenNoCandidates() {
 
         assertThat(scoringEngineService.scoreCandidates(
-                "pollo", List.of(), balancedRequest()))
+                "pollo", List.of(), balancedRequest(), NO_FAVORITES))
                 .isEmpty();
 
         assertThat(scoringEngineService.scoreCandidates(
-                "pollo", null, balancedRequest()))
+                "pollo", null, balancedRequest(), NO_FAVORITES))
                 .isEmpty();
     }
 }

@@ -124,6 +124,19 @@ class ProductSelectionServiceTest {
     }
 
     @Test
+    void selectBest_favoriteWithLowRelevanceDoesNotBeatSemanticFilter() {
+
+        // El favorito tiene mayor finalScore (por favoriteScore) pero es mucho
+        // menos relevante, así que el filtro semántico lo descarta.
+        ProductScore relevant = score(1, 0.55, 1.00, 0.0);
+        ProductScore favoriteButIrrelevant = score(2, 0.80, 0.50, 1.0);
+
+        assertThat(productSelectionService.selectBest(
+                "pollo", List.of(relevant, favoriteButIrrelevant)))
+                .contains(relevant);
+    }
+
+    @Test
     void selectBestPerTerm_returnsWinnerForEachTerm() {
 
         ProductScore polloWinner = score(1, 0.9, 1.0, 0.5);

@@ -3,7 +3,10 @@ package com.micarro.backend.controller;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,8 +41,14 @@ public class ShoppingPlanController {
     }
 
     @PostMapping
-    public ShoppingPlanResponse createPlan(@Valid @RequestBody ShoppingPlanRequest request) {
-        return shoppingPlanService.plan(request);
+    public ShoppingPlanResponse createPlan(
+            @Valid @RequestBody ShoppingPlanRequest request,
+            Authentication authentication) {
+
+        return shoppingPlanService.plan(
+                request,
+                resolveEmail(authentication)
+        );
     }
 
     // =========================================================
@@ -62,19 +71,28 @@ public class ShoppingPlanController {
     // =========================================================
     // ENDPOINT TEMPORAL DE DESARROLLO
     //
-    // Permite inspeccionar el scoring real de los candidatos.
-    // Mantiene el orden actual de los candidatos y todavía NO
-    // elige ganador ni optimiza el presupuesto.
+    // Permite inspeccionar el scoring real de los candidatos,
+    // incluyendo la puntuación de favoritos si hay sesión y la
+    // preferencia está activada. Mantiene el orden actual de los
+    // candidatos y todavía NO elige ganador ni optimiza el
+    // presupuesto.
     //
     // Eliminar (o mover a un perfil de desarrollo) cuando el
     // planificador completo esté implementado.
     // =========================================================
     @PostMapping("/scores")
     public Map<String, List<ProductScore>> getScores(
-            @Valid @RequestBody ShoppingPlanRequest request) {
+            @Valid @RequestBody ShoppingPlanRequest request,
+            Authentication authentication) {
 
         Map<String, List<Product>> candidatesByItem =
                 candidateSelectionService.selectCandidates(request);
+
+        Set<Long> favoriteProductIds =
+                shoppingPlanService.resolveFavoriteProductIds(
+                        request,
+                        resolveEmail(authentication)
+                );
 
         Map<String, List<ProductScore>> scoresByItem = new LinkedHashMap<>();
 
@@ -85,11 +103,25 @@ public class ShoppingPlanController {
                     scoringEngineService.scoreCandidates(
                             entry.getKey(),
                             entry.getValue(),
-                            request
+                            request,
+                            favoriteProductIds
                     )
             );
         }
 
         return scoresByItem;
+    }
+
+    /*
+     * Solo hay usuario real si la petición viene autenticada por JWT. En
+     * peticiones anónimas Authentication es AnonymousAuthenticationToken.
+     */
+    private String resolveEmail(Authentication authentication) {
+
+        if (authentication instanceof UsernamePasswordAuthenticationToken) {
+            return authentication.getName();
+        }
+
+        return null;
     }
 }

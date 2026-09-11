@@ -4,10 +4,7 @@ import com.micarro.backend.model.ShoppingMode;
 
 /**
  * Define cómo se combinan las puntuaciones de un candidato según el modo
- * de compra.
- *
- * <p>De momento solo aporta los pesos de relevancia y precio. La puntuación
- * de favoritos todavía no influye (no hay usuarios ni favoritos en backend).</p>
+ * de compra: relevancia, precio y favoritos.
  */
 public interface ShoppingStrategy {
 
@@ -16,4 +13,6 @@ public interface ShoppingStrategy {
     double relevanceWeight();
 
     double priceWeight();
+
+    double favoriteWeight();
 }
