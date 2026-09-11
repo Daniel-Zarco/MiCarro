@@ -10,7 +10,9 @@ import {
 import { ShoppingMode } from '../models/shopping-mode';
 import { ShoppingPlanRequest } from '../models/shopping-plan-request';
 import { ShoppingPlanResponse } from '../models/shopping-plan-response';
+import { AuthService } from '../services/auth.service';
 import { CartService } from '../services/cart.service';
+import { HistoryService } from '../services/history.service';
 import { ShoppingPlanService } from '../services/shopping-plan.service';
 
 @Component({
@@ -23,6 +25,8 @@ export class PlannerComponent implements OnDestroy {
 
   private readonly shoppingPlanService = inject(ShoppingPlanService);
   private readonly cartService = inject(CartService);
+  private readonly historyService = inject(HistoryService);
+  private readonly authService = inject(AuthService);
 
   readonly budget = signal<number | null>(null);
   readonly needs = signal('');
@@ -198,7 +202,7 @@ export class PlannerComponent implements OnDestroy {
           brand: item.brand,
           format: item.format,
           price: item.unitPrice,
-          imageUrl: null
+          imageUrl: item.imageUrl
         },
         item.quantity ?? 1
       );
@@ -211,6 +215,17 @@ export class PlannerComponent implements OnDestroy {
     }
 
     this.showCartFeedback();
+
+    // Solo los usuarios autenticados guardan historial, y solo al añadir
+    // al carrito (no al generar el preview).
+    if (this.authService.isAuthenticated()) {
+      this.historyService
+        .createHistory(plan)
+        .subscribe({
+          // El guardado del historial nunca debe romper la acción de carrito.
+          error: () => undefined
+        });
+    }
   }
 
   ngOnDestroy(): void {

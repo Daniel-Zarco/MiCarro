@@ -1,0 +1,169 @@
+:host {
+  display: block;
+}
+
+.migration-banner {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  margin-bottom: 22px;
+
+  padding: 16px 18px;
+
+  border:
+    1px solid
+    rgba(47, 111, 85, 0.18);
+
+  border-radius: 18px;
+
+  background:
+    var(--green-pale, #edf5ed);
+
+  box-shadow:
+    0 10px 26px
+    rgba(23, 56, 44, 0.06);
+}
+
+.migration-icon {
+  display: grid;
+
+  width: 42px;
+  height: 42px;
+
+  flex: 0 0 auto;
+
+  place-items: center;
+
+  border-radius: 13px;
+
+  background:
+    var(--green, #2f6f55);
+
+  color: white;
+}
+
+.migration-icon svg {
+  width: 22px;
+}
+
+.migration-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.migration-text strong {
+  display: block;
+
+  color:
+    var(--green-dark, #235841);
+
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+.migration-text p {
+  margin:
+    4px 0 0;
+
+  color:
+    var(--ink-soft, #284c3e);
+
+  font-size: 0.83rem;
+  line-height: 1.5;
+}
+
+.migration-actions {
+  display: flex;
+  flex: 0 0 auto;
+
+  gap: 10px;
+}
+
+.migration-accept {
+  min-height: 42px;
+
+  padding:
+    10px 16px;
+
+  border:
+    1px solid
+    var(--green, #2f6f55);
+
+  border-radius: 12px;
+
+  background:
+    var(--green, #2f6f55);
+
+  color: white;
+
+  font-size: 0.85rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.migration-accept:hover {
+  background:
+    var(--green-dark, #235841);
+
+  transform:
+    translateY(-1px);
+}
+
+.migration-dismiss {
+  min-height: 42px;
+
+  padding:
+    10px 16px;
+
+  border:
+    1px solid
+    var(--line-strong, #cbd8ce);
+
+  border-radius: 12px;
+
+  background: white;
+
+  color:
+    var(--green, #2f6f55);
+
+  font-size: 0.85rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.migration-dismiss:hover {
+  border-color:
+    var(--green, #2f6f55);
+
+  background:
+    var(--paper, #fffefa);
+}
+
+@media (max-width: 700px) {
+
+  .migration-banner {
+    flex-wrap: wrap;
+  }
+
+  .migration-actions {
+    width: 100%;
+  }
+
+  .migration-actions button {
+    flex: 1;
+
+    justify-content: center;
+  }
+}

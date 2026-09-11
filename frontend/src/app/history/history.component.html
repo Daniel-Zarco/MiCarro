@@ -1,0 +1,191 @@
+<div
+  class="history-overlay"
+  (click)="close()"
+  aria-hidden="true"
+></div>
+
+
+<div
+  class="history-panel"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="history-title"
+>
+
+  <header class="history-header">
+
+    <div>
+      <span class="history-kicker">Tu cuenta</span>
+      <h2 id="history-title">Mis planes</h2>
+    </div>
+
+    <button
+      class="history-close"
+      type="button"
+      (click)="close()"
+      aria-label="Cerrar"
+    >
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path
+          d="m5 5 10 10M15 5 5 15"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+
+  </header>
+
+
+  <div class="history-body">
+
+    @if (view() === 'list') {
+
+      @if (loading()) {
+        <div class="history-state" role="status">
+          <span class="history-spinner" aria-hidden="true"></span>
+          <span>Cargando tus planes…</span>
+        </div>
+      } @else if (error()) {
+        <div class="history-state history-error" role="alert">
+          <p>{{ error() }}</p>
+          <button type="button" (click)="loadPlans()">Reintentar</button>
+        </div>
+      } @else if (plans().length === 0) {
+        <div class="history-state history-empty">
+          <strong>Todavía no tienes planes guardados</strong>
+          <p>Cuando añadas una compra al carrito se guardará aquí.</p>
+        </div>
+      } @else {
+
+        <ul class="history-list">
+          @for (plan of plans(); track plan.id) {
+            <li class="history-card">
+
+              <div class="history-card-info">
+                <span class="history-date">{{ formatDate(plan.createdAt) }}</span>
+
+                <strong class="history-mode">{{ modeLabel(plan.mode) }}</strong>
+
+                <span class="history-numbers">
+                  Presupuesto {{ formatMoney(plan.budget) }} €
+                  · Total {{ formatMoney(plan.estimatedTotal) }} €
+                </span>
+              </div>
+
+              <div class="history-card-actions">
+                <button
+                  class="history-view"
+                  type="button"
+                  [disabled]="deleting()"
+                  (click)="openDetail(plan.id)"
+                >
+                  Ver detalle
+                </button>
+
+                <button
+                  class="history-delete"
+                  type="button"
+                  [disabled]="deleting()"
+                  (click)="deletePlan(plan.id)"
+                >
+                  Borrar
+                </button>
+              </div>
+
+            </li>
+          }
+        </ul>
+
+      }
+
+    } @else {
+
+      <button
+        class="history-back"
+        type="button"
+        (click)="backToList()"
+      >
+        <span aria-hidden="true">←</span>
+        Volver al listado
+      </button>
+
+      @if (detailLoading()) {
+        <div class="history-state" role="status">
+          <span class="history-spinner" aria-hidden="true"></span>
+          <span>Cargando el plan…</span>
+        </div>
+      } @else if (detailError()) {
+        <div class="history-state history-error" role="alert">
+          <p>{{ detailError() }}</p>
+        </div>
+      } @else if (detail(); as plan) {
+
+        <div class="detail-summary">
+          <span class="history-date">{{ formatDate(plan.createdAt) }}</span>
+          <strong class="history-mode">{{ modeLabel(plan.mode) }}</strong>
+
+          <dl class="detail-totals">
+            <div>
+              <dt>Presupuesto</dt>
+              <dd>{{ formatMoney(plan.budget) }} €</dd>
+            </div>
+            <div>
+              <dt>Total estimado</dt>
+              <dd>{{ formatMoney(plan.estimatedTotal) }} €</dd>
+            </div>
+          </dl>
+        </div>
+
+        <ul class="detail-items">
+          @for (item of plan.items; track $index) {
+            <li class="detail-item">
+
+              <div class="detail-item-media">
+                @if (item.imageUrl) {
+                  <img
+                    [src]="item.imageUrl"
+                    [alt]="item.productName ?? ''"
+                  >
+                } @else {
+                  <span aria-hidden="true">—</span>
+                }
+              </div>
+
+              <div class="detail-item-info">
+                <strong>{{ item.productName }}</strong>
+
+                @if (item.format) {
+                  <span class="detail-item-format">{{ item.format }}</span>
+                }
+
+                <span class="detail-item-qty">
+                  {{ item.quantity ?? 1 }} × {{ formatMoney(item.unitPrice) }} €
+                </span>
+              </div>
+
+              <strong class="detail-item-subtotal">
+                {{ formatMoney(item.subtotal) }} €
+              </strong>
+
+            </li>
+          }
+        </ul>
+
+        <button
+          class="history-delete history-delete-detail"
+          type="button"
+          [disabled]="deleting()"
+          (click)="deletePlan(plan.id)"
+        >
+          Borrar plan
+        </button>
+
+      }
+
+    }
+
+  </div>
+
+</div>

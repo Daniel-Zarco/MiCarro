@@ -1,0 +1,106 @@
+@if (authService.isAuthenticated()) {
+
+  <div class="user-menu">
+
+    <button
+      class="user-button"
+      type="button"
+      (click)="toggleMenu()"
+      [attr.aria-expanded]="menuOpen()"
+      aria-haspopup="true"
+    >
+      <span class="user-avatar" aria-hidden="true">
+        {{ initial() }}
+      </span>
+
+      <span class="user-name">
+        {{ authService.user()?.name }}
+      </span>
+
+      <svg
+        class="user-chevron"
+        viewBox="0 0 20 20"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="m6 7.5 4 4 4-4"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </button>
+
+
+    @if (menuOpen()) {
+
+      <div
+        class="user-menu-backdrop"
+        (click)="closeMenu()"
+        aria-hidden="true"
+      ></div>
+
+
+      <div class="user-dropdown" role="menu">
+
+        <span class="user-dropdown-email">
+          {{ authService.user()?.email }}
+        </span>
+
+        <button
+          class="user-dropdown-item"
+          type="button"
+          role="menuitem"
+          (click)="openPlans()"
+        >
+          Mis planes
+        </button>
+
+        <button
+          class="user-dropdown-logout"
+          type="button"
+          role="menuitem"
+          (click)="logout()"
+        >
+          Cerrar sesión
+        </button>
+
+      </div>
+
+    }
+
+  </div>
+
+} @else {
+
+  <button
+    class="auth-button"
+    type="button"
+    (click)="openLogin()"
+  >
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <circle
+        cx="12"
+        cy="8"
+        r="3.5"
+        stroke="currentColor"
+        stroke-width="1.7"
+      />
+      <path
+        d="M5.5 19.5c.8-3.2 3.3-5 6.5-5s5.7 1.8 6.5 5"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+      />
+    </svg>
+
+    <span>Iniciar sesión</span>
+  </button>
+
+}

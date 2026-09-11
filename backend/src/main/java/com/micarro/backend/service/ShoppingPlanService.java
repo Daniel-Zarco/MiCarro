@@ -108,6 +108,7 @@ public class ShoppingPlanService {
         item.setName(product.getName());
         item.setBrand(product.getBrand());
         item.setFormat(product.getFormat());
+        item.setImageUrl(product.getImageUrl());
         item.setQuantity(quantity);
         item.setUnitPrice(unitPrice);
         item.setSubtotal(subtotal);

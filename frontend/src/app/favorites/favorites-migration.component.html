@@ -1,0 +1,66 @@
+@if (favoriteService.hasPendingMigration()) {
+
+  <div
+    class="migration-banner"
+    role="status"
+  >
+
+    <span
+      class="migration-icon"
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+      >
+        <path
+          d="M12 20.5S3.4 14.9 2.3 9.6C1.6 6.2 4.1 3.8 7 3.8c1.9 0 3.8 1.1 4.5 2.5.2.5.3 1.3.5 1.3s.3-.8.5-1.3c.7-1.4 2.6-2.5 4.5-2.5 2.9 0 5.4 2.4 4.7 5.8-1.1 5.3-9.7 10.9-9.7 10.9Z"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+
+
+    <div class="migration-text">
+      <strong>
+        ¿Añadir tus favoritos guardados a tu cuenta?
+      </strong>
+
+      <p>
+        Tienes
+        {{ favoriteService.pendingMigrationCount() }}
+        {{
+          favoriteService.pendingMigrationCount() === 1
+            ? 'favorito'
+            : 'favoritos'
+        }}
+        en este dispositivo. Puedes guardarlos en tu cuenta o dejarlos como están.
+      </p>
+    </div>
+
+
+    <div class="migration-actions">
+
+      <button
+        class="migration-accept"
+        type="button"
+        (click)="accept()"
+      >
+        Añadir a mi cuenta
+      </button>
+
+      <button
+        class="migration-dismiss"
+        type="button"
+        (click)="dismiss()"
+      >
+        Ahora no
+      </button>
+
+    </div>
+
+  </div>
+
+}

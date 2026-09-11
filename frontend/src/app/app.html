@@ -197,15 +197,38 @@
 
     </button>
 
+
+    <app-auth-header
+      (login)="openAuthModal()"
+      (plans)="openHistory()"
+    ></app-auth-header>
+
   </div>
 
 </header>
+
+
+  @if (authModalOpen()) {
+    <app-auth-modal
+      (closed)="closeAuthModal()"
+    ></app-auth-modal>
+  }
+
+
+  @if (historyOpen()) {
+    <app-history
+      (closed)="closeHistory()"
+    ></app-history>
+  }
 
 
   <!-- =========================
        MAIN
        ========================= -->
   <main class="main">
+
+
+    <app-favorites-migration></app-favorites-migration>
 
 
     <!-- =========================

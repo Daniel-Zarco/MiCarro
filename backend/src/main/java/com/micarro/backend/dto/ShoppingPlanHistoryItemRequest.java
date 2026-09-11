@@ -2,10 +2,10 @@ package com.micarro.backend.dto;
 
 import java.math.BigDecimal;
 
-public class ShoppingPlanItemResponse {
+public class ShoppingPlanHistoryItemRequest {
 
     private Long productId;
-    private String name;
+    private String productName;
     private String brand;
     private String format;
     private String imageUrl;
@@ -13,7 +13,7 @@ public class ShoppingPlanItemResponse {
     private BigDecimal unitPrice;
     private BigDecimal subtotal;
 
-    public ShoppingPlanItemResponse() {
+    public ShoppingPlanHistoryItemRequest() {
     }
 
     public Long getProductId() {
@@ -24,12 +24,12 @@ public class ShoppingPlanItemResponse {
         this.productId = productId;
     }
 
-    public String getName() {
-        return name;
+    public String getProductName() {
+        return productName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
     public String getBrand() {

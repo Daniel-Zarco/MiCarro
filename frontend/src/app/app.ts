@@ -14,13 +14,23 @@ import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
 import { FavoriteService } from './services/favorite.service';
 import { PlannerComponent } from './planner/planner.component';
+import { AuthHeaderComponent } from './auth/auth-header.component';
+import { AuthModalComponent } from './auth/auth-modal.component';
+import { FavoritesMigrationComponent } from './favorites/favorites-migration.component';
+import { HistoryComponent } from './history/history.component';
 
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',
-  imports: [PlannerComponent]
+  imports: [
+    PlannerComponent,
+    AuthHeaderComponent,
+    AuthModalComponent,
+    FavoritesMigrationComponent,
+    HistoryComponent
+  ]
 })
 export class App implements OnInit, OnDestroy {
 
@@ -76,6 +86,15 @@ export class App implements OnInit, OnDestroy {
   protected readonly cartOpen = signal(false);
 
   protected readonly plannerOpen = signal(false);
+
+
+  // =========================
+  // AUTENTICACIÓN
+  // =========================
+
+  protected readonly authModalOpen = signal(false);
+
+  protected readonly historyOpen = signal(false);
 
 
   // =========================
@@ -255,6 +274,22 @@ export class App implements OnInit, OnDestroy {
 
   protected togglePlanner(): void {
     this.plannerOpen.update(open => !open);
+  }
+
+  protected openAuthModal(): void {
+    this.authModalOpen.set(true);
+  }
+
+  protected closeAuthModal(): void {
+    this.authModalOpen.set(false);
+  }
+
+  protected openHistory(): void {
+    this.historyOpen.set(true);
+  }
+
+  protected closeHistory(): void {
+    this.historyOpen.set(false);
   }
 
   

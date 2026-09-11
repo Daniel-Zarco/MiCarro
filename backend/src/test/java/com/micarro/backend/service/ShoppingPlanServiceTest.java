@@ -84,6 +84,7 @@ class ShoppingPlanServiceTest {
     void plan_buildsItemFromWinnerWithQuantityOneAndSubtotalEqualUnitPrice() {
 
         Product pollo = product(1, "Pollo entero", "Marca", "1 kg", "10.00");
+        pollo.setImageUrl("https://example.com/pollo.jpg");
 
         ShoppingPlanRequest request =
                 request("60", ShoppingMode.BALANCED, List.of("pollo"));
@@ -101,6 +102,7 @@ class ShoppingPlanServiceTest {
         assertThat(item.getName()).isEqualTo("Pollo entero");
         assertThat(item.getBrand()).isEqualTo("Marca");
         assertThat(item.getFormat()).isEqualTo("1 kg");
+        assertThat(item.getImageUrl()).isEqualTo("https://example.com/pollo.jpg");
         assertThat(item.getQuantity()).isEqualTo(1);
         assertThat(item.getUnitPrice()).isEqualByComparingTo("10.00");
         assertThat(item.getSubtotal()).isEqualByComparingTo("10.00");

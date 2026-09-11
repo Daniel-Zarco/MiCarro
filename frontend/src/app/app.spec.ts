@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
 
 import { App } from './app';
@@ -22,6 +23,7 @@ describe('App', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
+        provideHttpClient(),
         {
           provide: ProductService,
           useValue: {
