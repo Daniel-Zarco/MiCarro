@@ -254,13 +254,14 @@
 @media (max-width: 560px) {
 
   .auth-button {
-    min-height: 42px;
+    min-height: 36px;
 
-    padding:
-      7px
-      8px
-      7px
-      12px;
+    padding: 6px;
+  }
+
+  .auth-button svg {
+    width: 18px;
+    height: 18px;
   }
 
   .auth-button > span {
@@ -272,12 +273,78 @@
   }
 
   .user-button {
-    min-height: 42px;
+    min-height: 36px;
 
-    padding:
-      5px
-      8px
-      5px
-      5px;
+    padding: 5px;
+  }
+
+  .user-avatar {
+    width: 26px;
+    height: 26px;
+
+    font-size: 0.75rem;
+  }
+
+  .user-chevron {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 390px) {
+
+  .auth-button {
+    min-height: 34px;
+
+    padding: 5px;
+  }
+
+  .auth-button svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .user-button {
+    min-height: 34px;
+
+    padding: 4px;
+  }
+
+  .user-avatar {
+    width: 24px;
+    height: 24px;
+
+    font-size: 0.7rem;
+  }
+
+  .user-chevron {
+    display: none;
+  }
+}
+
+@media (max-width: 320px) {
+
+  .auth-button {
+    min-height: 32px;
+
+    padding: 4px;
+  }
+
+  .auth-button svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .user-button {
+    min-height: 32px;
+
+    padding: 3px;
+  }
+
+  .user-avatar {
+    width: 22px;
+    height: 22px;
+
+    font-size: 0.65rem;
   }
 }
