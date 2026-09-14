@@ -889,6 +889,13 @@
     padding: 18px;
   }
 
+  .planner-fields textarea {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
   .plan-mode-options {
     grid-template-columns: 1fr;
   }

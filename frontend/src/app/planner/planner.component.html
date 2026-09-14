@@ -213,6 +213,7 @@
               inputmode="decimal"
               placeholder="Introduce tu presupuesto"
               autocomplete="off"
+              [value]="budget() ?? ''"
               (input)="onBudgetInput($event)"
               [attr.aria-invalid]="planSubmitted() && !budgetValid()"
             >
@@ -237,6 +238,7 @@
             id="plan-needs"
             rows="3"
             placeholder="pollo, arroz, setas, yogures"
+            [value]="needs()"
             (input)="onNeedsInput($event)"
             [attr.aria-invalid]="planSubmitted() && !needsValid()"
           ></textarea>

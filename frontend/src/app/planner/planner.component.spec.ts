@@ -140,6 +140,20 @@ describe('PlannerComponent (carrito)', () => {
     expect(element.querySelector('.planner-form')).not.toBeNull();
   });
 
+  it('conserva el presupuesto y los productos al volver a planificar', () => {
+    const fixture = prepare();
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.plan-reset')!.click();
+    fixture.detectChanges();
+
+    const budgetInput = element.querySelector<HTMLInputElement>('#plan-budget');
+    const needsInput = element.querySelector<HTMLTextAreaElement>('#plan-needs');
+
+    expect(budgetInput?.value).toBe('60');
+    expect(needsInput?.value).toBe('pollo, arroz');
+  });
+
   it('usuario autenticado: guarda el plan en el historial al añadir al carrito', () => {
     authenticated.set(true);
     const fixture = prepare();

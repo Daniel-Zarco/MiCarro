@@ -46,6 +46,9 @@ public class Product {
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
+    @Column(name = "catalog_order")
+    private Integer catalogOrder;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -130,6 +133,14 @@ public class Product {
 
     public void setLastSyncedAt(Instant lastSyncedAt) {
         this.lastSyncedAt = lastSyncedAt;
+    }
+
+    public Integer getCatalogOrder() {
+        return catalogOrder;
+    }
+
+    public void setCatalogOrder(Integer catalogOrder) {
+        this.catalogOrder = catalogOrder;
     }
 
     public boolean isActive() {

@@ -46,6 +46,35 @@ class ProductControllerIntegrationTest {
         return productRepository.save(product);
     }
 
+    private Product product(String name, String category, boolean active) {
+
+        Product product = new Product();
+        product.setExternalId(uniqueExternalId());
+        product.setName(name);
+        product.setCategory(category);
+        product.setSource("MERCADONA");
+        product.setActive(active);
+
+        return productRepository.save(product);
+    }
+
+    private Product product(
+            String name,
+            String category,
+            int catalogOrder,
+            boolean active) {
+
+        Product product = new Product();
+        product.setExternalId(uniqueExternalId());
+        product.setName(name);
+        product.setCategory(category);
+        product.setCatalogOrder(catalogOrder);
+        product.setSource("MERCADONA");
+        product.setActive(active);
+
+        return productRepository.save(product);
+    }
+
     private String createBody(String externalId) {
         return """
                 {
@@ -108,6 +137,26 @@ class ProductControllerIntegrationTest {
                 .andExpect(jsonPath("$.totalPages").isNumber())
                 .andExpect(jsonPath("$.first").isBoolean())
                 .andExpect(jsonPath("$.last").isBoolean());
+    }
+
+    @Test
+    void getProducts_returnsProductsSortedByCatalogOrder() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("Zanahoria", "Verdura", 3, true);
+        product("Manzana", "Fruta", 1, true);
+        product("Arándanos", "Fruta", 0, true);
+        product("Brócoli", "Verdura", 2, true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Arándanos"))
+                .andExpect(jsonPath("$.content[1].name").value("Manzana"))
+                .andExpect(jsonPath("$.content[2].name").value("Brócoli"))
+                .andExpect(jsonPath("$.content[3].name").value("Zanahoria"));
     }
 
     @Test

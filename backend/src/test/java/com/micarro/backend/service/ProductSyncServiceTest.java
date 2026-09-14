@@ -75,6 +75,7 @@ class ProductSyncServiceTest {
         product.setId(id);
         product.setSource(SOURCE);
         product.setActive(active);
+        product.setCatalogOrder(0);
         product.setLastSyncedAt(Instant.now());
         return product;
     }
@@ -106,6 +107,38 @@ class ProductSyncServiceTest {
         assertThat(saved.get(0).getSource()).isEqualTo(SOURCE);
         assertThat(saved.get(0).isActive()).isTrue();
         assertThat(saved.get(0).getLastSyncedAt()).isNotNull();
+        assertThat(saved.get(0).getCatalogOrder()).isZero();
+    }
+
+    @Test
+    void sync_assignsCatalogOrderBasedOnProviderSequence() {
+
+        List<Product> saved = new ArrayList<>();
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(
+                        incoming("C", "Tercero", "Cat", "img", "1kg", "3"),
+                        incoming("A", "Primero", "Cat", "img", "1kg", "1"),
+                        incoming("B", "Segundo", "Cat", "img", "1kg", "2")
+                ));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of());
+        when(productRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> {
+                    saved.addAll(invocation.getArgument(0));
+                    return invocation.getArgument(0);
+                });
+
+        productSyncService.sync();
+
+        assertThat(saved).hasSize(3);
+        assertThat(saved.get(0).getExternalId()).isEqualTo("C");
+        assertThat(saved.get(0).getCatalogOrder()).isZero();
+        assertThat(saved.get(1).getExternalId()).isEqualTo("A");
+        assertThat(saved.get(1).getCatalogOrder()).isEqualTo(1);
+        assertThat(saved.get(2).getExternalId()).isEqualTo("B");
+        assertThat(saved.get(2).getCatalogOrder()).isEqualTo(2);
     }
 
     @Test
@@ -128,6 +161,31 @@ class ProductSyncServiceTest {
         assertThat(stored.getImageUrl()).isEqualTo("img2");
         assertThat(stored.getPrice()).isEqualByComparingTo("12");
         assertThat(stored.getExternalId()).isEqualTo("A");
+        assertThat(stored.getCatalogOrder()).isZero();
+    }
+
+    @Test
+    void sync_updatesCatalogOrderForExistingProducts() {
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+        stored.setCatalogOrder(5);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(
+                        incoming("B", "Otro", "Carnes", "img", "1kg", "5"),
+                        incoming("A", "Pollo", "Carnes", "img", "1kg", "10")
+                ));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        SyncResult result = productSyncService.sync();
+
+        assertThat(result.getCreated()).isEqualTo(1);
+        assertThat(result.getUpdated()).isEqualTo(1);
+        assertThat(result.getUnchanged()).isZero();
+        assertThat(stored.getCatalogOrder()).isEqualTo(1);
     }
 
     @Test

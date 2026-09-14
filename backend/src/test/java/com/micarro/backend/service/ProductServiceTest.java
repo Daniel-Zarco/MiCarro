@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
@@ -52,6 +53,16 @@ class ProductServiceTest {
         return product;
     }
 
+    private Pageable sortedPageable(Pageable pageable) {
+        Sort defaultSort = Sort.by(Sort.Order.asc("catalogOrder"));
+
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                defaultSort
+        );
+    }
+
     @Test
     void createProduct_returnsOwnResponse() {
 
@@ -75,10 +86,11 @@ class ProductServiceTest {
     void getProducts_mapsToOwnPageResponse() {
 
         Pageable pageable = PageRequest.of(0, 5);
+        Pageable sortedPageable = sortedPageable(pageable);
         PageImpl<Product> page =
-                new PageImpl<>(List.of(product(1, "Pollo", "10")), pageable, 1);
+                new PageImpl<>(List.of(product(1, "Pollo", "10")), sortedPageable, 1);
 
-        when(productRepository.findAll(pageable)).thenReturn(page);
+        when(productRepository.findAll(sortedPageable)).thenReturn(page);
 
         PageResponse<ProductResponse> response =
                 productService.getProducts(null, pageable);
@@ -97,13 +109,14 @@ class ProductServiceTest {
     void getProducts_usesSearchWhenProvided() {
 
         Pageable pageable = PageRequest.of(0, 5);
+        Pageable sortedPageable = sortedPageable(pageable);
 
-        when(productRepository.findByNameContainingIgnoreCase(eq("pollo"), eq(pageable)))
-                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+        when(productRepository.findByNameContainingIgnoreCase(eq("pollo"), eq(sortedPageable)))
+                .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
         productService.getProducts("  pollo  ", pageable);
 
-        verify(productRepository).findByNameContainingIgnoreCase("pollo", pageable);
+        verify(productRepository).findByNameContainingIgnoreCase("pollo", sortedPageable);
     }
 
     @Test

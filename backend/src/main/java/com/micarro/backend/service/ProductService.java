@@ -3,7 +3,9 @@ package com.micarro.backend.service;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import com.micarro.backend.dto.PageResponse;
@@ -24,15 +26,20 @@ public class ProductService {
         return toResponse(productRepository.save(product));
     }
 
+    private static final Sort DEFAULT_PRODUCT_SORT =
+            Sort.by(Sort.Order.asc("catalogOrder"));
+
     public PageResponse<ProductResponse> getProducts(
             String search,
             Pageable pageable) {
 
+        Pageable sortedPageable = withDefaultSort(pageable);
+
         Page<Product> page = (search == null || search.isBlank())
-                ? productRepository.findAll(pageable)
+                ? productRepository.findAll(sortedPageable)
                 : productRepository.findByNameContainingIgnoreCase(
                         search.trim(),
-                        pageable
+                        sortedPageable
                 );
 
         return PageResponse.from(
@@ -41,6 +48,14 @@ public class ProductService {
                         .stream()
                         .map(this::toResponse)
                         .toList()
+        );
+    }
+
+    private Pageable withDefaultSort(Pageable pageable) {
+        return PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                DEFAULT_PRODUCT_SORT
         );
     }
 

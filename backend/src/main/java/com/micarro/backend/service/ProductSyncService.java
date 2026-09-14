@@ -96,6 +96,8 @@ public class ProductSyncService {
         List<Product> toSave = new ArrayList<>();
         Set<String> seenExternalIds = new HashSet<>();
 
+        int catalogOrder = 0;
+
         for (Map.Entry<String, Product> entry : uniqueIncoming.entrySet()) {
 
             String externalId = entry.getKey();
@@ -109,12 +111,17 @@ public class ProductSyncService {
 
                 if (stored == null) {
 
-                    toSave.add(createFrom(incomingProduct, source, now));
+                    toSave.add(createFrom(incomingProduct, source, now, catalogOrder));
                     created++;
 
                 } else {
 
                     boolean changed = applyChanges(stored, incomingProduct);
+
+                    if (!Objects.equals(stored.getCatalogOrder(), catalogOrder)) {
+                        stored.setCatalogOrder(catalogOrder);
+                        changed = true;
+                    }
 
                     stored.setSource(source);
                     stored.setActive(true);
@@ -133,6 +140,8 @@ public class ProductSyncService {
                 // Un producto problemático no debe destruir la sincronización.
                 errors++;
             }
+
+            catalogOrder++;
         }
 
         // Los productos de la fuente que ya no aparecen se desactivan.
@@ -163,7 +172,11 @@ public class ProductSyncService {
         );
     }
 
-    private Product createFrom(Product incoming, String source, Instant now) {
+    private Product createFrom(
+            Product incoming,
+            String source,
+            Instant now,
+            int catalogOrder) {
 
         Product product = new Product();
 
@@ -177,6 +190,7 @@ public class ProductSyncService {
         product.setSource(source);
         product.setActive(true);
         product.setLastSyncedAt(now);
+        product.setCatalogOrder(catalogOrder);
 
         return product;
     }
