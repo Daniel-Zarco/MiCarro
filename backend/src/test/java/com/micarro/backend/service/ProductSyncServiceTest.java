@@ -107,6 +107,7 @@ class ProductSyncServiceTest {
         assertThat(saved.get(0).getSource()).isEqualTo(SOURCE);
         assertThat(saved.get(0).isActive()).isTrue();
         assertThat(saved.get(0).getLastSyncedAt()).isNotNull();
+        assertThat(saved.get(0).getFirstSeenAt()).isNotNull();
         assertThat(saved.get(0).getCatalogOrder()).isZero();
     }
 
@@ -204,6 +205,46 @@ class ProductSyncServiceTest {
 
         assertThat(result.getUnchanged()).isEqualTo(1);
         assertThat(result.getUpdated()).isZero();
+    }
+
+    @Test
+    void sync_preservesFirstSeenAtForExistingProducts() {
+
+        Instant originalFirstSeen = Instant.parse("2026-01-01T00:00:00Z");
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+        stored.setFirstSeenAt(originalFirstSeen);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo fresco", "Carnes", "img2", "1kg", "12")));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        SyncResult result = productSyncService.sync();
+
+        assertThat(result.getUpdated()).isEqualTo(1);
+        assertThat(stored.getFirstSeenAt()).isEqualTo(originalFirstSeen);
+    }
+
+    @Test
+    void sync_doesNotSetFirstSeenAtWhenReactivating() {
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", false);
+        stored.setFirstSeenAt(null);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "10")));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        SyncResult result = productSyncService.sync();
+
+        assertThat(stored.isActive()).isTrue();
+        assertThat(stored.getFirstSeenAt()).isNull();
+        assertThat(result.getUnchanged()).isEqualTo(1);
     }
 
     @Test

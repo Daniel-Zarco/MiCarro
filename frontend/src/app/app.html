@@ -154,6 +154,37 @@
 
 
     <button
+      class="recent-button"
+      type="button"
+      (click)="toggleRecent()"
+      [class.is-active]="recentView()"
+      [attr.aria-pressed]="recentView()"
+      aria-label="Ver productos recientes"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 2.5 13.7 7l4.3 1.2-3.5 2.9 1.1 4.6L12 13.2 7.4 15.7l1.1-4.6L5 8.2 9.3 7 12 2.5Z"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M18.5 14.5l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2 1.2-2.8Z"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linejoin="round"
+        />
+      </svg>
+
+      <span>Novedades</span>
+    </button>
+
+
+    <button
       class="cart-button"
       type="button"
       (click)="openCart()"
@@ -296,16 +327,28 @@
 
         <div>
           <span class="section-kicker">
-            {{ favoritesView() ? 'Favoritos' : 'Catálogo' }}
+            {{
+              favoritesView()
+                ? 'Favoritos'
+                : recentView()
+                  ? 'Novedades'
+                  : 'Catálogo'
+            }}
           </span>
-        
+
           <h2 id="products-title">
-            {{ favoritesView() ? 'Mis favoritos' : 'Productos' }}
+            {{
+              favoritesView()
+                ? 'Mis favoritos'
+                : recentView()
+                  ? 'Novedades'
+                  : 'Productos'
+            }}
           </h2>
         </div>
-      
-      
-        @if (favoritesView()) {
+
+
+        @if (favoritesView() || recentView()) {
 
           <button
             class="catalog-mode-button"
@@ -315,6 +358,10 @@
             <span aria-hidden="true">←</span>
             Volver al catálogo
           </button>
+
+        }
+
+        @if (favoritesView()) {
 
           <span class="catalog-mode-count">
             {{
@@ -329,7 +376,7 @@
           @if (
             !loading() &&
             !error() &&
-            products().length > 0 &&
+            visibleProducts().length > 0 &&
             totalPages() > 1
           ) {
           
@@ -427,11 +474,19 @@
 
           <div>
             <strong>
-              Preparando el catálogo
+              {{
+                recentView()
+                  ? 'Preparando novedades'
+                  : 'Preparando el catálogo'
+              }}
             </strong>
 
             <p>
-              Estamos cargando los productos.
+              {{
+                recentView()
+                  ? 'Estamos cargando los productos recientes.'
+                  : 'Estamos cargando los productos.'
+              }}
             </p>
           </div>
 
@@ -460,7 +515,11 @@
           <div>
 
             <strong>
-              No hemos podido cargar el catálogo
+              {{
+                recentView()
+                  ? 'No hemos podido cargar las novedades'
+                  : 'No hemos podido cargar el catálogo'
+              }}
             </strong>
 
             <p>
@@ -486,6 +545,7 @@
            ========================= -->
       @if (
         !favoritesView() &&
+        !recentView() &&
         !loading() &&
         !error() &&
         products().length === 0
@@ -591,6 +651,65 @@
                 ? 'Explorar catálogo'
                 : 'Ver todo el catálogo'
             }}
+          </button>
+
+        </div>
+
+      }
+
+
+      <!-- =========================
+           EMPTY RECENT
+           ========================= -->
+      @if (
+        recentView() &&
+        !loading() &&
+        !error() &&
+        visibleProducts().length === 0
+      ) {
+
+        <div class="state-message empty-results">
+
+          <span
+            class="state-icon"
+            aria-hidden="true"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <path
+                d="M12 2.5 13.7 7l4.3 1.2-3.5 2.9 1.1 4.6L12 13.2 7.4 15.7l1.1-4.6L5 8.2 9.3 7 12 2.5Z"
+                stroke="currentColor"
+                stroke-width="1.7"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M18.5 14.5l1.2 2.8 2.8 1.2-2.8 1.2-1.2 2.8-1.2-2.8-2.8-1.2 2.8-1.2 1.2-2.8Z"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </span>
+
+          <div>
+
+            <strong>
+              Todavía no hay productos recientes
+            </strong>
+
+            <p>
+              Vuelve pronto para descubrir las últimas novedades del catálogo.
+            </p>
+
+          </div>
+
+          <button
+            type="button"
+            (click)="showCatalog()"
+          >
+            Volver al catálogo
           </button>
 
         </div>

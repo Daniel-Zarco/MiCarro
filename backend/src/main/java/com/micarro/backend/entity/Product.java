@@ -49,6 +49,9 @@ public class Product {
     @Column(name = "catalog_order")
     private Integer catalogOrder;
 
+    @Column(name = "first_seen_at")
+    private Instant firstSeenAt;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -141,6 +144,14 @@ public class Product {
 
     public void setCatalogOrder(Integer catalogOrder) {
         this.catalogOrder = catalogOrder;
+    }
+
+    public Instant getFirstSeenAt() {
+        return firstSeenAt;
+    }
+
+    public void setFirstSeenAt(Instant firstSeenAt) {
+        this.firstSeenAt = firstSeenAt;
     }
 
     public boolean isActive() {

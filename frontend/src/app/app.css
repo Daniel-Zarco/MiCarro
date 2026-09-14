@@ -404,6 +404,73 @@ button {
   stroke: currentColor;
 }
 
+.recent-button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  min-height: 46px;
+
+  padding:
+    8px
+    9px
+    8px
+    16px;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 14px;
+
+  background:
+    rgba(255, 254, 250, 0.7);
+
+  color: var(--ink-soft);
+
+  font-size: 0.9rem;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.recent-button:hover {
+  border-color: var(--green);
+
+  background: white;
+
+  color: var(--green);
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 18px
+    rgba(47, 111, 85, 0.1);
+}
+
+.recent-button svg {
+  width: 20px;
+}
+
+.recent-button.is-active {
+  border-color: var(--green);
+
+  background: var(--green-pale);
+
+  color: var(--green);
+
+  box-shadow:
+    0 8px 18px
+    rgba(47, 111, 85, 0.1);
+}
+
 .favorites-badge {
   display: grid;
 
@@ -2084,6 +2151,20 @@ input:focus-visible {
   }
 
   .favorites-button > span:not(.favorites-badge) {
+    display: none;
+  }
+
+  .recent-button {
+    min-height: 42px;
+
+    padding:
+      7px
+      8px
+      7px
+      12px;
+  }
+
+  .recent-button > span {
     display: none;
   }
 

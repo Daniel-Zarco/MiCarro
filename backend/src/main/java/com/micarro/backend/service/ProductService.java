@@ -1,5 +1,7 @@
 package com.micarro.backend.service;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -56,6 +58,34 @@ public class ProductService {
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 DEFAULT_PRODUCT_SORT
+        );
+    }
+
+    private static final Sort RECENT_PRODUCT_SORT =
+            Sort.by(Sort.Order.desc("firstSeenAt"));
+
+    public PageResponse<ProductResponse> getRecentProducts(Pageable pageable) {
+
+        Instant sixMonthsAgo = Instant.now().minus(6 * 30L, ChronoUnit.DAYS);
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                RECENT_PRODUCT_SORT
+        );
+
+        Page<Product> page = productRepository
+                .findByActiveTrueAndFirstSeenAtGreaterThanEqual(
+                        sixMonthsAgo,
+                        sortedPageable
+                );
+
+        return PageResponse.from(
+                page,
+                page.getContent()
+                        .stream()
+                        .map(this::toResponse)
+                        .toList()
         );
     }
 

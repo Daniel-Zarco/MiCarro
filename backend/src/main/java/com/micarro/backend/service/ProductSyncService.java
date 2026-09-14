@@ -190,6 +190,7 @@ public class ProductSyncService {
         product.setSource(source);
         product.setActive(true);
         product.setLastSyncedAt(now);
+        product.setFirstSeenAt(now);
         product.setCatalogOrder(catalogOrder);
 
         return product;

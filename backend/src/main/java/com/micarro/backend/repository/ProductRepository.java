@@ -1,5 +1,6 @@
 package com.micarro.backend.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -51,6 +52,11 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Page<Product> findByBrandContainingIgnoreCaseOrCategoryContainingIgnoreCase(
             String brand,
             String category,
+            Pageable pageable
+    );
+
+    Page<Product> findByActiveTrueAndFirstSeenAtGreaterThanEqual(
+            Instant since,
             Pageable pageable
     );
 }

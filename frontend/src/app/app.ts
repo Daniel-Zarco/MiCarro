@@ -62,6 +62,14 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly favoritesView = signal(false);
 
+
+  // =========================
+  // VISTA DE NOVEDADES
+  // =========================
+
+  protected readonly recentView = signal(false);
+  protected readonly recentProducts = signal<Product[]>([]);
+
   protected readonly favoriteProducts = computed(() => {
 
     const query = this.search().trim().toLowerCase();
@@ -78,11 +86,15 @@ export class App implements OnInit, OnDestroy {
     );
   });
 
-  protected readonly visibleProducts = computed(() =>
-    this.favoritesView()
-      ? this.favoriteProducts()
-      : this.products()
-  );
+  protected readonly visibleProducts = computed(() => {
+    if (this.favoritesView()) {
+      return this.favoriteProducts();
+    }
+    if (this.recentView()) {
+      return this.recentProducts();
+    }
+    return this.products();
+  });
 
 
   // =========================
@@ -145,7 +157,7 @@ export class App implements OnInit, OnDestroy {
 
         // En la vista de favoritos el filtro es local:
         // no hace falta volver a consultar el backend.
-        if (!this.favoritesView()) {
+        if (!this.favoritesView() && !this.recentView()) {
           this.loadProducts(0);
         }
       });
@@ -204,6 +216,48 @@ export class App implements OnInit, OnDestroy {
   }
 
 
+  protected loadRecentProducts(page = 0): void {
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.productService
+      .getRecentProducts(page, 24)
+      .subscribe({
+
+        next: (response) => {
+
+          this.recentProducts.set(response.content);
+
+          this.currentPage.set(response.page);
+          this.totalPages.set(response.totalPages);
+
+          this.loading.set(false);
+
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Error cargando novedades:',
+            error
+          );
+
+          this.error.set(
+            'No se han podido cargar las novedades.'
+          );
+
+          this.loading.set(false);
+        }
+
+      });
+  }
+
+
   // =========================
   // BUSCADOR
   // =========================
@@ -225,9 +279,13 @@ export class App implements OnInit, OnDestroy {
   protected previousPage(): void {
 
     if (this.currentPage() > 0) {
-      this.loadProducts(
-        this.currentPage() - 1
-      );
+      const page = this.currentPage() - 1;
+
+      if (this.recentView()) {
+        this.loadRecentProducts(page);
+      } else {
+        this.loadProducts(page);
+      }
     }
   }
 
@@ -238,9 +296,13 @@ export class App implements OnInit, OnDestroy {
       this.totalPages() - 1
     ) {
 
-      this.loadProducts(
-        this.currentPage() + 1
-      );
+      const page = this.currentPage() + 1;
+
+      if (this.recentView()) {
+        this.loadRecentProducts(page);
+      } else {
+        this.loadProducts(page);
+      }
     }
   }
 
@@ -260,6 +322,7 @@ export class App implements OnInit, OnDestroy {
   protected toggleFavorites(): void {
     const activating = !this.favoritesView();
     this.favoritesView.set(activating);
+    this.recentView.set(false);
 
     // Al volver al catálogo completo hay que recargar
     // con la búsqueda actual para no mostrar resultados atrasados.
@@ -273,8 +336,26 @@ export class App implements OnInit, OnDestroy {
     });
   }
 
+  protected toggleRecent(): void {
+    const activating = !this.recentView();
+    this.recentView.set(activating);
+    this.favoritesView.set(false);
+
+    if (activating) {
+      this.loadRecentProducts(0);
+    } else {
+      this.loadProducts(0);
+    }
+
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+
   protected showCatalog(): void {
     this.favoritesView.set(false);
+    this.recentView.set(false);
     this.loadProducts(this.currentPage());
   }
 
@@ -377,10 +458,14 @@ export class App implements OnInit, OnDestroy {
     }
   
     this.pageSelectorOpen.set(false);
-  
-    // El usuario ve páginas desde 1,
-    // pero Spring/Angular internamente trabajan desde 0.
-    this.loadProducts(page - 1);
+
+    const targetPage = page - 1;
+
+    if (this.recentView()) {
+      this.loadRecentProducts(targetPage);
+    } else {
+      this.loadProducts(targetPage);
+    }
   }
   
   protected onPageInput(event: Event): void {

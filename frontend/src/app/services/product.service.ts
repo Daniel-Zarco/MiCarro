@@ -34,4 +34,19 @@ export class ProductService {
       { params }
     );
   }
+
+  getRecentProducts(
+    page = 0,
+    size = 24
+  ): Observable<PageResponse<Product>> {
+
+    const params = new HttpParams()
+      .set('page', page)
+      .set('size', size);
+
+    return this.http.get<PageResponse<Product>>(
+      `${this.apiUrl}/recent`,
+      { params }
+    );
+  }
 }

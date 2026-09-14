@@ -1,0 +1,2 @@
+ALTER TABLE products
+    ADD COLUMN first_seen_at TIMESTAMP WITH TIME ZONE;

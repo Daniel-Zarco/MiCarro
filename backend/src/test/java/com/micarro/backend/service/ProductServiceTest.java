@@ -7,6 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -167,5 +169,35 @@ class ProductServiceTest {
         when(productRepository.existsById(1L)).thenReturn(false);
 
         assertThat(productService.deleteProduct(1L)).isFalse();
+    }
+
+    @Test
+    void getRecentProducts_filtersByLastSixMonthsAndSortsByFirstSeenAtDesc() {
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Sort recentSort = Sort.by(Sort.Order.desc("firstSeenAt"));
+        Pageable sortedPageable = PageRequest.of(0, 10, recentSort);
+
+        Instant sixMonthsAgo = Instant.now().minus(6 * 30L, ChronoUnit.DAYS);
+
+        PageImpl<Product> page =
+                new PageImpl<>(List.of(product(1, "Nuevo", "5")), sortedPageable, 1);
+
+        when(productRepository
+                .findByActiveTrueAndFirstSeenAtGreaterThanEqual(
+                        org.mockito.ArgumentMatchers.argThat(
+                                instant -> instant.isAfter(sixMonthsAgo.minusSeconds(60))
+                                        && instant.isBefore(sixMonthsAgo.plusSeconds(60))
+                        ),
+                        org.mockito.ArgumentMatchers.eq(sortedPageable)
+                )
+        ).thenReturn(page);
+
+        PageResponse<ProductResponse> response =
+                productService.getRecentProducts(pageable);
+
+        assertThat(response.getContent()).hasSize(1);
+        assertThat(response.getContent().get(0).getName()).isEqualTo("Nuevo");
+        assertThat(response.getTotalElements()).isEqualTo(1);
     }
 }

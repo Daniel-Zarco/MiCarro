@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -70,6 +71,21 @@ class ProductControllerIntegrationTest {
         product.setCategory(category);
         product.setCatalogOrder(catalogOrder);
         product.setSource("MERCADONA");
+        product.setActive(active);
+
+        return productRepository.save(product);
+    }
+
+    private Product product(
+            String name,
+            Instant firstSeenAt,
+            boolean active) {
+
+        Product product = new Product();
+        product.setExternalId(uniqueExternalId());
+        product.setName(name);
+        product.setSource("MERCADONA");
+        product.setFirstSeenAt(firstSeenAt);
         product.setActive(active);
 
         return productRepository.save(product);
@@ -207,5 +223,29 @@ class ProductControllerIntegrationTest {
 
         mockMvc.perform(get("/api/products/" + inactive.getId()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getRecentProducts_returnsActiveProductsFromLastSixMonthsSortedByFirstSeenAtDesc()
+            throws Exception {
+
+        productRepository.deleteAll();
+
+        Instant now = Instant.now();
+        Instant fiveMonthsAgo = now.minus(5 * 30L, java.time.temporal.ChronoUnit.DAYS);
+        Instant sevenMonthsAgo = now.minus(7 * 30L, java.time.temporal.ChronoUnit.DAYS);
+
+        product("Reciente A", now.minusSeconds(60), true);
+        product("Reciente B", fiveMonthsAgo, true);
+        product("Antiguo", sevenMonthsAgo, true);
+        product("Inactivo reciente", now.minusSeconds(60), false);
+
+        mockMvc.perform(get("/api/products/recent")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Reciente A"))
+                .andExpect(jsonPath("$.content[1].name").value("Reciente B"));
     }
 }

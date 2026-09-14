@@ -35,6 +35,11 @@ public class ProductController {
         return productService.getProducts(search, pageable);
     }
 
+    @GetMapping("/recent")
+    public PageResponse<ProductResponse> getRecentProducts(Pageable pageable) {
+        return productService.getRecentProducts(pageable);
+    }
+
     @GetMapping("/{id}")
     public ProductResponse getProductById(@PathVariable Long id) {
         return productService.getProductById(id)
