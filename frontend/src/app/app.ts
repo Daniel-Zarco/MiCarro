@@ -6,6 +6,8 @@ import {
   signal
 } from '@angular/core';
 
+import { NgTemplateOutlet } from '@angular/common';
+
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
@@ -25,12 +27,16 @@ import { HistoryComponent } from './history/history.component';
   templateUrl: './app.html',
   styleUrl: './app.css',
   imports: [
+    NgTemplateOutlet,
     PlannerComponent,
     AuthHeaderComponent,
     AuthModalComponent,
     FavoritesMigrationComponent,
     HistoryComponent
-  ]
+  ],
+  host: {
+    '(document:keydown.escape)': 'onEscape()'
+  }
 })
 export class App implements OnInit, OnDestroy {
 
@@ -95,6 +101,14 @@ export class App implements OnInit, OnDestroy {
   protected readonly authModalOpen = signal(false);
 
   protected readonly historyOpen = signal(false);
+
+
+  // =========================
+  // MODAL DE PRODUCTO (MÓVIL)
+  // =========================
+
+  protected readonly expandedProduct = signal<Product | null>(null);
+  protected readonly modalOpen = signal(false);
 
 
   // =========================
@@ -292,7 +306,46 @@ export class App implements OnInit, OnDestroy {
     this.historyOpen.set(false);
   }
 
-  
+
+  // =========================
+  // MODAL DE PRODUCTO (MÓVIL)
+  // =========================
+
+  protected expandCard(product: Product): void {
+    if (
+      typeof window === 'undefined' ||
+      !window.matchMedia('(max-width: 850px)').matches
+    ) {
+      return;
+    }
+
+    this.expandedProduct.set(product);
+    this.modalOpen.set(false);
+    document.body.style.overflow = 'hidden';
+
+    requestAnimationFrame(() => {
+      this.modalOpen.set(true);
+    });
+  }
+
+  protected closeCardModal(event?: MouseEvent): void {
+    if (event && event.target !== event.currentTarget) {
+      return;
+    }
+
+    this.modalOpen.set(false);
+
+    setTimeout(() => {
+      this.expandedProduct.set(null);
+      document.body.style.overflow = '';
+    }, 220);
+  }
+
+  protected onEscape(): void {
+    if (this.expandedProduct()) {
+      this.closeCardModal();
+    }
+  }
 
 
   // =========================
@@ -301,6 +354,7 @@ export class App implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.searchSubject.complete();
+    document.body.style.overflow = '';
   }
 
   protected pageSelectorOpen = signal(false);
