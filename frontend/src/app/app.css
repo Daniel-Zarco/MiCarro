@@ -1266,9 +1266,13 @@ input:focus-visible {
   display: grid;
   place-items: center;
 
+  flex-shrink: 0;
+
   height: clamp(205px, 19vw, 260px);
 
   padding: 28px;
+
+  overflow: hidden;
 
   /*
    * Verde pastel muy suave.
