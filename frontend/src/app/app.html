@@ -450,7 +450,11 @@
         </div>
 
 
-        @if (!favoritesView() && !recentView()) {
+        @if (
+          !favoritesView() &&
+          !recentView() &&
+          !(catalogSort() === 'category' && selectedCategory())
+        ) {
 
           <div class="sort-dropdown" [class.is-open]="sortOpen()">
 
