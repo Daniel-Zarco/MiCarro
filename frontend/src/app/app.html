@@ -322,6 +322,7 @@
 
 
     <app-auth-header
+      [class.compact]="mobileSearchOpen()"
       (login)="openAuthModal()"
       (plans)="openHistory()"
     ></app-auth-header>

@@ -253,7 +253,45 @@
     var(--green-pale, #edf5ed);
 }
 
-@media (max-width: 1050px) {
+/* Compact state (search open in intermediate mode): icon-only square. */
+:host.compact .auth-button > span,
+:host.compact .user-name {
+  display: none;
+}
+
+:host.compact .auth-button,
+:host.compact .user-button {
+  display: grid;
+  place-items: center;
+
+  width: 44px;
+  height: 44px;
+
+  padding: 0;
+
+  gap: 0;
+
+  border-radius: 12px;
+}
+
+:host.compact .auth-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+:host.compact .user-avatar {
+  width: 28px;
+  height: 28px;
+
+  font-size: 0.8rem;
+}
+
+:host.compact .user-chevron {
+  display: none;
+}
+
+/* Intermediate mode: hide auth label when space is tight. */
+@media (max-width: 960px) and (min-width: 721px) {
 
   .auth-button > span,
   .user-name {
@@ -262,6 +300,11 @@
 }
 
 @media (max-width: 720px) {
+
+  .auth-button > span,
+  .user-name {
+    display: none;
+  }
 
   .auth-button,
   .user-button {
