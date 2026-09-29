@@ -143,6 +143,75 @@ class ProductServiceTest {
     }
 
     @Test
+    void getProducts_sortsByPriceDescendingWithNullsLastWhenRequested() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(productRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        productService.getProducts(null, "price-desc", pageable);
+
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
+        verify(productRepository).findAll(captor.capture());
+
+        Sort.Order order = captor.getValue().getSort().getOrderFor("price");
+        assertThat(order).isNotNull();
+        assertThat(order.getDirection()).isEqualTo(Sort.Direction.DESC);
+        assertThat(order.getNullHandling()).isEqualTo(Sort.NullHandling.NULLS_LAST);
+    }
+
+    @Test
+    void getProducts_sortsByCategoryThenCatalogOrderWhenRequested() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(productRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        productService.getProducts(null, "category", pageable);
+
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
+        verify(productRepository).findAll(captor.capture());
+
+        Sort sort = captor.getValue().getSort();
+        Sort.Order categoryOrder = sort.getOrderFor("category");
+        Sort.Order catalogOrder = sort.getOrderFor("catalogOrder");
+
+        assertThat(categoryOrder).isNotNull();
+        assertThat(categoryOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+        assertThat(catalogOrder).isNotNull();
+        assertThat(catalogOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
+    void getProducts_sortsByNameCaseInsensitiveWithStableSecondaryWhenRequested() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(productRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        productService.getProducts(null, "name", pageable);
+
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
+        verify(productRepository).findAll(captor.capture());
+
+        Sort sort = captor.getValue().getSort();
+        Sort.Order nameOrder = sort.getOrderFor("name");
+        Sort.Order idOrder = sort.getOrderFor("id");
+
+        assertThat(nameOrder).isNotNull();
+        assertThat(nameOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+        assertThat(nameOrder.isIgnoreCase()).isTrue();
+        assertThat(idOrder).isNotNull();
+        assertThat(idOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
     void getProductById_returnsOwnResponse() {
 
         when(productRepository.findById(1L))

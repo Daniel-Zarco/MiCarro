@@ -58,7 +58,7 @@ export class App implements OnInit, OnDestroy {
   protected readonly search = signal('');
 
   protected readonly catalogSort =
-    signal<'catalog' | 'price-asc'>('catalog');
+    signal<'catalog' | 'category' | 'price-asc' | 'price-desc' | 'name'>('catalog');
 
 
   // =========================
@@ -285,7 +285,7 @@ export class App implements OnInit, OnDestroy {
   protected onSortChange(event: Event): void {
 
     const value = (event.target as HTMLSelectElement)
-      .value as 'catalog' | 'price-asc';
+      .value as 'catalog' | 'category' | 'price-asc' | 'price-desc' | 'name';
 
     this.catalogSort.set(value);
 

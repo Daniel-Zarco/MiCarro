@@ -103,12 +103,13 @@ describe('App', () => {
     const select = element.querySelector<HTMLSelectElement>('.catalog-sort select')!;
 
     expect(select).not.toBeNull();
+    expect(select.options.length).toBe(5);
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog');
 
-    select.value = 'price-asc';
+    select.value = 'price-desc';
     select.dispatchEvent(new Event('change'));
     fixture.detectChanges();
 
-    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc');
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc');
   });
 });

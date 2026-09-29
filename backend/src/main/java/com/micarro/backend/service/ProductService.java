@@ -34,6 +34,15 @@ public class ProductService {
     private static final Sort PRICE_ASC_SORT =
             Sort.by(Sort.Order.asc("price").nullsLast());
 
+    private static final Sort PRICE_DESC_SORT =
+            Sort.by(Sort.Order.desc("price").nullsLast());
+
+    private static final Sort CATEGORY_SORT =
+            Sort.by(Sort.Order.asc("category"), Sort.Order.asc("catalogOrder"));
+
+    private static final Sort NAME_SORT =
+            Sort.by(Sort.Order.asc("name").ignoreCase(), Sort.Order.asc("id"));
+
     public PageResponse<ProductResponse> getProducts(
             String search,
             String sortBy,
@@ -61,6 +70,9 @@ public class ProductService {
 
         Sort sort = switch (sortBy == null ? "catalog" : sortBy) {
             case "price-asc" -> PRICE_ASC_SORT;
+            case "price-desc" -> PRICE_DESC_SORT;
+            case "category" -> CATEGORY_SORT;
+            case "name" -> NAME_SORT;
             default -> DEFAULT_PRODUCT_SORT;
         };
 
