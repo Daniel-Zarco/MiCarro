@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.entity.Product;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -54,6 +55,26 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             String category,
             Pageable pageable
     );
+
+    Page<Product> findByCategoryIgnoreCase(
+            String category,
+            Pageable pageable
+    );
+
+    Page<Product> findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+            String name,
+            String category,
+            Pageable pageable
+    );
+
+    @Query("""
+            select new com.micarro.backend.dto.CategoryResponse(p.category, count(p))
+            from Product p
+            where p.category is not null
+            group by p.category
+            order by lower(p.category)
+            """)
+    List<CategoryResponse> findCategorySummaries();
 
     Page<Product> findByActiveTrueAndFirstSeenAtGreaterThanEqual(
             Instant since,

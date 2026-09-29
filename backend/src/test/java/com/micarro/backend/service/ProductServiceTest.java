@@ -23,6 +23,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
@@ -96,7 +97,7 @@ class ProductServiceTest {
         when(productRepository.findAll(sortedPageable)).thenReturn(page);
 
         PageResponse<ProductResponse> response =
-                productService.getProducts(null, "catalog", pageable);
+                productService.getProducts(null, null, "catalog", pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("Pollo");
@@ -117,7 +118,7 @@ class ProductServiceTest {
         when(productRepository.findByNameContainingIgnoreCase(eq("pollo"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
-        productService.getProducts("  pollo  ", "catalog", pageable);
+        productService.getProducts("  pollo  ", null, "catalog", pageable);
 
         verify(productRepository).findByNameContainingIgnoreCase("pollo", sortedPageable);
     }
@@ -130,7 +131,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, "price-asc", pageable);
+        productService.getProducts(null, null, "price-asc", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -150,7 +151,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, "price-desc", pageable);
+        productService.getProducts(null, null, "price-desc", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -163,30 +164,6 @@ class ProductServiceTest {
     }
 
     @Test
-    void getProducts_sortsByCategoryThenCatalogOrderWhenRequested() {
-
-        Pageable pageable = PageRequest.of(0, 5);
-
-        when(productRepository.findAll(any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
-
-        productService.getProducts(null, "category", pageable);
-
-        ArgumentCaptor<Pageable> captor =
-                ArgumentCaptor.forClass(Pageable.class);
-        verify(productRepository).findAll(captor.capture());
-
-        Sort sort = captor.getValue().getSort();
-        Sort.Order categoryOrder = sort.getOrderFor("category");
-        Sort.Order catalogOrder = sort.getOrderFor("catalogOrder");
-
-        assertThat(categoryOrder).isNotNull();
-        assertThat(categoryOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
-        assertThat(catalogOrder).isNotNull();
-        assertThat(catalogOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
-    }
-
-    @Test
     void getProducts_sortsByNameCaseInsensitiveWithStableSecondaryWhenRequested() {
 
         Pageable pageable = PageRequest.of(0, 5);
@@ -194,7 +171,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, "name", pageable);
+        productService.getProducts(null, null, "name", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -209,6 +186,54 @@ class ProductServiceTest {
         assertThat(nameOrder.isIgnoreCase()).isTrue();
         assertThat(idOrder).isNotNull();
         assertThat(idOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
+    void getProducts_filtersByCategory() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Pageable sortedPageable = sortedPageable(pageable);
+
+        when(productRepository.findByCategoryIgnoreCase(eq("Fruta"), eq(sortedPageable)))
+                .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
+
+        productService.getProducts(null, "  Fruta  ", "catalog", pageable);
+
+        verify(productRepository).findByCategoryIgnoreCase("Fruta", sortedPageable);
+    }
+
+    @Test
+    void getProducts_combinesSearchAndCategory() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Pageable sortedPageable = sortedPageable(pageable);
+
+        when(productRepository.findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+                eq("manzana"), eq("Fruta"), eq(sortedPageable)))
+                .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
+
+        productService.getProducts(" manzana ", "Fruta", "catalog", pageable);
+
+        verify(productRepository).findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+                "manzana", "Fruta", sortedPageable);
+    }
+
+    @Test
+    void getCategories_returnsSummaries() {
+
+        when(productRepository.findCategorySummaries())
+                .thenReturn(List.of(
+                        new CategoryResponse("Bebidas", 4),
+                        new CategoryResponse("Frutas", 9)
+                ));
+
+        List<CategoryResponse> categories = productService.getCategories();
+
+        assertThat(categories).hasSize(2);
+        assertThat(categories.get(0).getName()).isEqualTo("Bebidas");
+        assertThat(categories.get(0).getProductCount()).isEqualTo(4);
+        assertThat(categories.get(1).getName()).isEqualTo("Frutas");
+        assertThat(categories.get(1).getProductCount()).isEqualTo(9);
     }
 
     @Test

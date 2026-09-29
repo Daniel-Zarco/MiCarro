@@ -2,6 +2,7 @@ package com.micarro.backend.service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
@@ -37,25 +39,44 @@ public class ProductService {
     private static final Sort PRICE_DESC_SORT =
             Sort.by(Sort.Order.desc("price").nullsLast());
 
-    private static final Sort CATEGORY_SORT =
-            Sort.by(Sort.Order.asc("category"), Sort.Order.asc("catalogOrder"));
-
     private static final Sort NAME_SORT =
             Sort.by(Sort.Order.asc("name").ignoreCase(), Sort.Order.asc("id"));
 
+    public List<CategoryResponse> getCategories() {
+        return productRepository.findCategorySummaries();
+    }
+
     public PageResponse<ProductResponse> getProducts(
             String search,
+            String category,
             String sortBy,
             Pageable pageable) {
 
         Pageable sortedPageable = withSort(pageable, sortBy);
 
-        Page<Product> page = (search == null || search.isBlank())
-                ? productRepository.findAll(sortedPageable)
-                : productRepository.findByNameContainingIgnoreCase(
-                        search.trim(),
-                        sortedPageable
-                );
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasCategory = category != null && !category.isBlank();
+
+        Page<Product> page;
+        if (hasSearch && hasCategory) {
+            page = productRepository.findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+                    search.trim(),
+                    category.trim(),
+                    sortedPageable
+            );
+        } else if (hasCategory) {
+            page = productRepository.findByCategoryIgnoreCase(
+                    category.trim(),
+                    sortedPageable
+            );
+        } else if (hasSearch) {
+            page = productRepository.findByNameContainingIgnoreCase(
+                    search.trim(),
+                    sortedPageable
+            );
+        } else {
+            page = productRepository.findAll(sortedPageable);
+        }
 
         return PageResponse.from(
                 page,
@@ -71,7 +92,6 @@ public class ProductService {
         Sort sort = switch (sortBy == null ? "catalog" : sortBy) {
             case "price-asc" -> PRICE_ASC_SORT;
             case "price-desc" -> PRICE_DESC_SORT;
-            case "category" -> CATEGORY_SORT;
             case "name" -> NAME_SORT;
             default -> DEFAULT_PRODUCT_SORT;
         };

@@ -425,7 +425,9 @@
                 ? 'Favoritos'
                 : recentView()
                   ? 'Novedades'
-                  : 'Catálogo'
+                  : catalogSort() === 'category'
+                    ? (selectedCategory() ? 'Categoría' : 'Categorías')
+                    : 'Catálogo'
             }}
           </span>
 
@@ -435,7 +437,9 @@
                 ? 'Mis favoritos'
                 : recentView()
                   ? 'Novedades'
-                  : 'Productos'
+                  : catalogSort() === 'category'
+                    ? (selectedCategory() ?? 'Todas las categorías')
+                    : 'Productos'
             }}
           </h2>
         </div>
@@ -546,7 +550,23 @@
         }
 
 
-        @if (favoritesView() || recentView()) {
+        @if (
+          !favoritesView() &&
+          !recentView() &&
+          catalogSort() === 'category' &&
+          selectedCategory()
+        ) {
+
+          <button
+            class="catalog-mode-button"
+            type="button"
+            (click)="backToCategories()"
+          >
+            <span aria-hidden="true">←</span>
+            Volver a categorías
+          </button>
+
+        } @else if (favoritesView() || recentView()) {
 
           <button
             class="catalog-mode-button"
@@ -574,6 +594,7 @@
           @if (
             !loading() &&
             !error() &&
+            !categoryListView() &&
             visibleProducts().length > 0 &&
             totalPages() > 1
           ) {
@@ -655,6 +676,93 @@
       </div>
     
     
+      <!-- =========================
+           CATEGORY LIST
+           ========================= -->
+      @if (categoryListView()) {
+
+        @if (loading()) {
+
+          <div
+            class="state-message loading-state"
+            role="status"
+          >
+            <span
+              class="loader"
+              aria-hidden="true"
+            ></span>
+
+            <div>
+              <strong>Cargando categorías</strong>
+              <p>Estamos preparando las categorías.</p>
+            </div>
+          </div>
+
+        } @else if (error()) {
+
+          <div
+            class="state-message error-state"
+            role="alert"
+          >
+            <span
+              class="state-icon"
+              aria-hidden="true"
+            >
+              !
+            </span>
+
+            <div>
+              <strong>No hemos podido cargar las categorías</strong>
+              <p>{{ error() }}</p>
+            </div>
+
+            <button
+              type="button"
+              (click)="loadCategories()"
+            >
+              Reintentar
+            </button>
+          </div>
+
+        } @else if (categories().length === 0) {
+
+          <div class="state-message empty-results">
+            <strong>No hay categorías disponibles</strong>
+            <p>Todavía no hay productos en el catálogo.</p>
+          </div>
+
+        } @else {
+
+          <div class="category-grid">
+
+            @for (cat of categories(); track cat.name) {
+
+              <button
+                type="button"
+                class="category-card"
+                (click)="openCategory(cat.name)"
+              >
+                <strong>{{ cat.name }}</strong>
+
+                <span>
+                  {{ cat.productCount }}
+                  {{
+                    cat.productCount === 1
+                      ? 'producto'
+                      : 'productos'
+                  }}
+                </span>
+              </button>
+
+            }
+
+          </div>
+
+        }
+
+      } @else {
+
+
       <!-- =========================
            LOADING
            ========================= -->
@@ -1178,6 +1286,8 @@
           </nav>
 
         }
+
+      }
 
       }
 

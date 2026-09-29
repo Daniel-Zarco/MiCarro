@@ -31,8 +31,14 @@ describe('App', () => {
     empty: false,
   }));
 
+  const getCategories = vi.fn(() => of([
+    { name: 'Bebidas', productCount: 4 },
+    { name: 'Frutas', productCount: 9 },
+  ]));
+
   beforeEach(async () => {
     getProducts.mockClear();
+    getCategories.mockClear();
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -40,7 +46,7 @@ describe('App', () => {
         provideHttpClient(),
         {
           provide: ProductService,
-          useValue: { getProducts },
+          useValue: { getProducts, getCategories },
         },
       ],
     }).compileComponents();
@@ -103,7 +109,7 @@ describe('App', () => {
     const button = element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!;
 
     expect(button).not.toBeNull();
-    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog');
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog', '');
 
     button.click();
     fixture.detectChanges();
@@ -116,6 +122,54 @@ describe('App', () => {
     options[3].click(); // Precio: mayor a menor
     fixture.detectChanges();
 
-    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc');
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', '');
+  });
+
+  it('muestra la lista de categorías al elegir Categorías', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
+    fixture.detectChanges();
+
+    const options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    options[1].click(); // Categorías
+    fixture.detectChanges();
+
+    expect(getCategories).toHaveBeenCalled();
+    expect(element.querySelectorAll('.category-card').length).toBe(2);
+    expect(element.querySelector('#products-title')?.textContent).toContain('Todas las categorías');
+  });
+
+  it('abre una categoría, carga sus productos y permite volver', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
+    fixture.detectChanges();
+
+    const options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    options[1].click(); // Categorías
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.category-card')!.click();
+    fixture.detectChanges();
+
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog', 'Bebidas');
+    expect(element.querySelector('#products-title')?.textContent).toContain('Bebidas');
+
+    const back = element.querySelector<HTMLButtonElement>('.catalog-mode-button')!;
+    expect(back.textContent).toContain('Volver a categorías');
+
+    back.click();
+    fixture.detectChanges();
+
+    expect(element.querySelector('.category-card')).not.toBeNull();
   });
 });

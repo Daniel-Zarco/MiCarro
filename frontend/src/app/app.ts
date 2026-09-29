@@ -13,6 +13,7 @@ import { NgTemplateOutlet } from '@angular/common';
 import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
+import { Category } from './models/category';
 import { Product } from './models/product';
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
@@ -64,6 +65,15 @@ export class App implements OnInit, OnDestroy {
 
 
   // =========================
+  // VISTA DE CATEGORÍAS
+  // =========================
+
+  protected readonly categories = signal<Category[]>([]);
+  protected readonly selectedCategory = signal<string | null>(null);
+  protected readonly categoryProducts = signal<Product[]>([]);
+
+
+  // =========================
   // VISTA DE FAVORITOS
   // =========================
 
@@ -100,8 +110,19 @@ export class App implements OnInit, OnDestroy {
     if (this.recentView()) {
       return this.recentProducts();
     }
+    if (this.selectedCategory()) {
+      return this.categoryProducts();
+    }
     return this.products();
   });
+
+  protected readonly categoryListView = computed(
+    () =>
+      this.catalogSort() === 'category' &&
+      !this.selectedCategory() &&
+      !this.favoritesView() &&
+      !this.recentView()
+  );
 
 
   // =========================
@@ -184,6 +205,21 @@ export class App implements OnInit, OnDestroy {
 
   protected loadProducts(page = 0): void {
 
+    if (this.catalogSort() === 'category' && this.selectedCategory()) {
+      this.loadCategoryProducts(page);
+      return;
+    }
+
+    if (this.catalogSort() === 'category') {
+      // Vista de la lista de categorías: la búsqueda no aplica.
+      return;
+    }
+
+    this.loadCatalogProducts(page);
+  }
+
+  protected loadCatalogProducts(page = 0): void {
+
     this.loading.set(true);
     this.error.set(null);
 
@@ -192,7 +228,8 @@ export class App implements OnInit, OnDestroy {
         page,
         24,
         this.search(),
-        this.catalogSort()
+        this.catalogSort(),
+        ''
       )
       .subscribe({
 
@@ -220,6 +257,97 @@ export class App implements OnInit, OnDestroy {
 
           this.error.set(
             'No se han podido cargar los productos.'
+          );
+
+          this.loading.set(false);
+        }
+
+      });
+  }
+
+  protected loadCategoryProducts(page = 0): void {
+
+    const category = this.selectedCategory();
+
+    if (!category) {
+      return;
+    }
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.productService
+      .getProducts(
+        page,
+        24,
+        this.search(),
+        'catalog',
+        category
+      )
+      .subscribe({
+
+        next: (response) => {
+
+          this.categoryProducts.set(response.content);
+
+          this.currentPage.set(response.page);
+          this.totalPages.set(response.totalPages);
+
+          this.loading.set(false);
+
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Error cargando categoría:',
+            error
+          );
+
+          this.error.set(
+            'No se han podido cargar los productos de esta categoría.'
+          );
+
+          this.loading.set(false);
+        }
+
+      });
+  }
+
+  protected loadCategories(): void {
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.productService
+      .getCategories()
+      .subscribe({
+
+        next: (response) => {
+
+          this.categories.set(response);
+
+          this.loading.set(false);
+
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Error cargando categorías:',
+            error
+          );
+
+          this.error.set(
+            'No se han podido cargar las categorías.'
           );
 
           this.loading.set(false);
@@ -312,7 +440,25 @@ export class App implements OnInit, OnDestroy {
     this.catalogSort.set(value);
     this.sortOpen.set(false);
 
+    if (value === 'category') {
+      this.selectedCategory.set(null);
+      this.loadCategories();
+      return;
+    }
+
+    this.selectedCategory.set(null);
+
     this.loadProducts(0);
+  }
+
+  protected openCategory(name: string): void {
+    this.selectedCategory.set(name);
+    this.loadCategoryProducts(0);
+  }
+
+  protected backToCategories(): void {
+    this.selectedCategory.set(null);
+    this.loadCategories();
   }
 
 
@@ -368,6 +514,10 @@ export class App implements OnInit, OnDestroy {
     this.favoritesView.set(activating);
     this.recentView.set(false);
 
+    if (activating) {
+      this.selectedCategory.set(null);
+    }
+
     // Al volver al catálogo completo hay que recargar
     // con la búsqueda actual para no mostrar resultados atrasados.
     if (!activating) {
@@ -386,6 +536,10 @@ export class App implements OnInit, OnDestroy {
     this.favoritesView.set(false);
 
     if (activating) {
+      this.selectedCategory.set(null);
+    }
+
+    if (activating) {
       this.loadRecentProducts(0);
     } else {
       this.loadProducts(0);
@@ -400,7 +554,13 @@ export class App implements OnInit, OnDestroy {
   protected showCatalog(): void {
     this.favoritesView.set(false);
     this.recentView.set(false);
-    this.loadProducts(this.currentPage());
+
+    if (this.catalogSort() === 'category') {
+      this.selectedCategory.set(null);
+      this.loadCategories();
+    } else {
+      this.loadProducts(this.currentPage());
+    }
   }
 
   protected openCart(): void {

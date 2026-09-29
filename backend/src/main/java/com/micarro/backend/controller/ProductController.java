@@ -1,5 +1,8 @@
 package com.micarro.backend.controller;
 
+import java.util.List;
+
+import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
@@ -27,13 +30,19 @@ public class ProductController {
         return productService.createProduct(product);
     }
 
+    @GetMapping("/categories")
+    public List<CategoryResponse> getCategories() {
+        return productService.getCategories();
+    }
+
     @GetMapping
     public PageResponse<ProductResponse> getProducts(
             @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "catalog") String sortBy,
             Pageable pageable) {
 
-        return productService.getProducts(search, sortBy, pageable);
+        return productService.getProducts(search, category, sortBy, pageable);
     }
 
     @GetMapping("/recent")

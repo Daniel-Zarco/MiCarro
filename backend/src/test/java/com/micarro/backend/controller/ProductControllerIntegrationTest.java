@@ -234,24 +234,62 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    void getProducts_sortsByCategoryThenCatalogOrder() throws Exception {
+    void getCategories_returnsDistinctCategoriesAlphabeticalWithCounts() throws Exception {
 
         productRepository.deleteAll();
 
         product("Zanahoria", "Verdura", 3, true);
+        product("Brócoli", "Verdura", 2, true);
         product("Manzana", "Fruta", 1, true);
         product("Arándanos", "Fruta", 0, true);
-        product("Brócoli", "Verdura", 2, true);
+        product("Oculto", "Fruta", 0, false);
+
+        mockMvc.perform(get("/api/products/categories"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Fruta"))
+                .andExpect(jsonPath("$[0].productCount").value(2))
+                .andExpect(jsonPath("$[1].name").value("Verdura"))
+                .andExpect(jsonPath("$[1].productCount").value(2));
+    }
+
+    @Test
+    void getProducts_filtersByCategoryWithPagination() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("Manzana", "Fruta", 1, true);
+        product("Arándanos", "Fruta", 0, true);
+        product("Zanahoria", "Verdura", 3, true);
+        product("Oculta", "Fruta", 0, false);
 
         mockMvc.perform(get("/api/products")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("sortBy", "category"))
+                        .param("category", "Fruta"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.content[0].name").value("Arándanos"))
-                .andExpect(jsonPath("$.content[1].name").value("Manzana"))
-                .andExpect(jsonPath("$.content[2].name").value("Brócoli"))
-                .andExpect(jsonPath("$.content[3].name").value("Zanahoria"));
+                .andExpect(jsonPath("$.content[1].name").value("Manzana"));
+    }
+
+    @Test
+    void getProducts_combinesCategoryAndSearch() throws Exception {
+
+        productRepository.deleteAll();
+
+        String token = UUID.randomUUID().toString();
+
+        product("Manzana " + token, "Fruta", 1, true);
+        product("Otro " + token, "Verdura", 0, true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("category", "Fruta")
+                        .param("search", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Manzana " + token));
     }
 
     @Test
