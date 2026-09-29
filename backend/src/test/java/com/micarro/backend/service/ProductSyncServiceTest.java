@@ -36,11 +36,17 @@ class ProductSyncServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private MainCategoryMapper mainCategoryMapper;
+
     private ProductSyncService productSyncService;
 
     @BeforeEach
     void setUp() {
-        productSyncService = new ProductSyncService(productProvider, productRepository);
+        productSyncService = new ProductSyncService(
+                productProvider,
+                productRepository,
+                mainCategoryMapper);
     }
 
     private Product incoming(
@@ -313,6 +319,41 @@ class ProductSyncServiceTest {
         assertThat(second.getUnchanged()).isEqualTo(1);
         assertThat(second.getDeactivated()).isZero();
         assertThat(database).hasSize(1);
+    }
+
+    @Test
+    void sync_setsMainCategoryForNewAndExistingProducts() {
+
+        List<Product> saved = new ArrayList<>();
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(
+                        incoming("A", "Pollo", "Carnes", "img", "1kg", "10"),
+                        incoming("B", "Manzanas", "Frutas", "img", "1kg", "2")
+                ));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(mainCategoryMapper.map("Carnes")).thenReturn("Carne");
+        when(mainCategoryMapper.map("Frutas")).thenReturn("Frutas y verduras");
+        when(productRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> {
+                    saved.addAll(invocation.getArgument(0));
+                    return invocation.getArgument(0);
+                });
+
+        SyncResult result = productSyncService.sync();
+
+        assertThat(result.getCreated()).isEqualTo(1);
+        assertThat(result.getUpdated()).isEqualTo(1);
+        assertThat(stored.getMainCategory()).isEqualTo("Carne");
+        assertThat(saved)
+                .filteredOn(product -> "B".equals(product.getExternalId()))
+                .singleElement()
+                .extracting(Product::getMainCategory)
+                .isEqualTo("Frutas y verduras");
     }
 
     @Test

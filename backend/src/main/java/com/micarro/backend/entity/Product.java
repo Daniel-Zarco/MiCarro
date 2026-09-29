@@ -32,6 +32,9 @@ public class Product {
 
     private String category;
 
+    @Column(name = "main_category")
+    private String mainCategory;
+
     @Column(unique = true)
     private String externalId;
 
@@ -88,6 +91,14 @@ public class Product {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public String getMainCategory() {
+        return mainCategory;
+    }
+
+    public void setMainCategory(String mainCategory) {
+        this.mainCategory = mainCategory;
     }
 
     public String getExternalId() {

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.jayway.jsonpath.JsonPath;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.repository.ProductRepository;
+import com.micarro.backend.service.MainCategoryMapper;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -32,6 +33,9 @@ class ProductControllerIntegrationTest {
 
     @Autowired
     private ProductRepository productRepository;
+
+    @Autowired
+    private MainCategoryMapper mainCategoryMapper;
 
     private String uniqueExternalId() {
         return "test-" + UUID.randomUUID();
@@ -54,6 +58,7 @@ class ProductControllerIntegrationTest {
         product.setExternalId(uniqueExternalId());
         product.setName(name);
         product.setCategory(category);
+        product.setMainCategory(mainCategoryMapper.map(category));
         product.setSource("MERCADONA");
         product.setActive(active);
 
@@ -70,6 +75,7 @@ class ProductControllerIntegrationTest {
         product.setExternalId(uniqueExternalId());
         product.setName(name);
         product.setCategory(category);
+        product.setMainCategory(mainCategoryMapper.map(category));
         product.setCatalogOrder(catalogOrder);
         product.setSource("MERCADONA");
         product.setActive(active);
@@ -234,42 +240,52 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
-    void getCategories_returnsDistinctCategoriesAlphabeticalWithCounts() throws Exception {
+    void getCategories_returnsDistinctMainCategoriesAlphabeticalWithCounts() throws Exception {
 
         productRepository.deleteAll();
 
-        product("Zanahoria", "Verdura", 3, true);
-        product("Brócoli", "Verdura", 2, true);
-        product("Manzana", "Fruta", 1, true);
-        product("Arándanos", "Fruta", 0, true);
-        product("Oculto", "Fruta", 0, false);
+        product("Manzanas", "Frutas", 1, true);
+        product("Peras", "Frutas", 0, true);
+        product("Pollo", "Carnes", 3, true);
+        product("Lomo", "Charcutería", 2, true);
+        product("Oculto", "Frutas", 0, false);
 
         mockMvc.perform(get("/api/products/categories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("Fruta"))
-                .andExpect(jsonPath("$[0].productCount").value(2))
-                .andExpect(jsonPath("$[1].name").value("Verdura"))
-                .andExpect(jsonPath("$[1].productCount").value(2));
+                .andExpect(jsonPath("$[0].name").value("Carne"))
+                .andExpect(jsonPath("$[0].productCount").value(1))
+                .andExpect(jsonPath("$[1].name").value("Charcutería"))
+                .andExpect(jsonPath("$[1].productCount").value(1))
+                .andExpect(jsonPath("$[2].name").value("Frutas y verduras"))
+                .andExpect(jsonPath("$[2].productCount").value(2));
     }
 
     @Test
-    void getProducts_filtersByCategoryWithPagination() throws Exception {
+    void getProducts_filtersByMainCategoryWithPagination() throws Exception {
 
         productRepository.deleteAll();
 
-        product("Manzana", "Fruta", 1, true);
-        product("Arándanos", "Fruta", 0, true);
-        product("Zanahoria", "Verdura", 3, true);
-        product("Oculta", "Fruta", 0, false);
+        product("Manzanas", "Frutas", 1, true);
+        product("Peras", "Frutas", 0, true);
+        product("Pollo", "Carnes", 3, true);
+        product("Oculta", "Frutas", 0, false);
 
         mockMvc.perform(get("/api/products")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("category", "Fruta"))
+                        .param("category", "Frutas y verduras"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(2))
-                .andExpect(jsonPath("$.content[0].name").value("Arándanos"))
-                .andExpect(jsonPath("$.content[1].name").value("Manzana"));
+                .andExpect(jsonPath("$.content[0].name").value("Peras"))
+                .andExpect(jsonPath("$.content[1].name").value("Manzanas"));
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("category", "Carne"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Pollo"));
     }
 
     @Test
@@ -279,13 +295,13 @@ class ProductControllerIntegrationTest {
 
         String token = UUID.randomUUID().toString();
 
-        product("Manzana " + token, "Fruta", 1, true);
-        product("Otro " + token, "Verdura", 0, true);
+        product("Manzana " + token, "Frutas", 1, true);
+        product("Otro " + token, "Carnes", 0, true);
 
         mockMvc.perform(get("/api/products")
                         .param("page", "0")
                         .param("size", "10")
-                        .param("category", "Fruta")
+                        .param("category", "Frutas y verduras")
                         .param("search", token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalElements").value(1))

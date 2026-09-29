@@ -23,13 +23,16 @@ public class ProductSyncService {
 
     private final ProductProvider productProvider;
     private final ProductRepository productRepository;
+    private final MainCategoryMapper mainCategoryMapper;
 
     public ProductSyncService(
             ProductProvider productProvider,
-            ProductRepository productRepository) {
+            ProductRepository productRepository,
+            MainCategoryMapper mainCategoryMapper) {
 
         this.productProvider = productProvider;
         this.productRepository = productRepository;
+        this.mainCategoryMapper = mainCategoryMapper;
     }
 
     /**
@@ -123,6 +126,14 @@ public class ProductSyncService {
                         changed = true;
                     }
 
+                    String mainCategory =
+                            mainCategoryMapper.map(stored.getCategory());
+
+                    if (!Objects.equals(stored.getMainCategory(), mainCategory)) {
+                        stored.setMainCategory(mainCategory);
+                        changed = true;
+                    }
+
                     stored.setSource(source);
                     stored.setActive(true);
                     stored.setLastSyncedAt(now);
@@ -184,6 +195,7 @@ public class ProductSyncService {
         product.setName(incoming.getName());
         product.setBrand(incoming.getBrand());
         product.setCategory(incoming.getCategory());
+        product.setMainCategory(mainCategoryMapper.map(incoming.getCategory()));
         product.setImageUrl(incoming.getImageUrl());
         product.setFormat(incoming.getFormat());
         product.setPrice(incoming.getPrice());

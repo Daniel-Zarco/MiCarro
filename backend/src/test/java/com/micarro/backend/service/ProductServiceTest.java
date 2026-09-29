@@ -35,11 +35,16 @@ class ProductServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private MainCategoryMapper mainCategoryMapper;
+
     private ProductService productService;
 
     @BeforeEach
     void setUp() {
-        productService = new ProductService(productRepository);
+        productService = new ProductService(
+                productRepository,
+                mainCategoryMapper);
     }
 
     private Product product(long id, String name, String price) {
@@ -194,12 +199,12 @@ class ProductServiceTest {
         Pageable pageable = PageRequest.of(0, 5);
         Pageable sortedPageable = sortedPageable(pageable);
 
-        when(productRepository.findByCategoryIgnoreCase(eq("Fruta"), eq(sortedPageable)))
+        when(productRepository.findByMainCategoryIgnoreCase(eq("Fruta"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
         productService.getProducts(null, "  Fruta  ", "catalog", pageable);
 
-        verify(productRepository).findByCategoryIgnoreCase("Fruta", sortedPageable);
+        verify(productRepository).findByMainCategoryIgnoreCase("Fruta", sortedPageable);
     }
 
     @Test
@@ -208,13 +213,13 @@ class ProductServiceTest {
         Pageable pageable = PageRequest.of(0, 5);
         Pageable sortedPageable = sortedPageable(pageable);
 
-        when(productRepository.findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+        when(productRepository.findByNameContainingIgnoreCaseAndMainCategoryIgnoreCase(
                 eq("manzana"), eq("Fruta"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
         productService.getProducts(" manzana ", "Fruta", "catalog", pageable);
 
-        verify(productRepository).findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+        verify(productRepository).findByNameContainingIgnoreCaseAndMainCategoryIgnoreCase(
                 "manzana", "Fruta", sortedPageable);
     }
 

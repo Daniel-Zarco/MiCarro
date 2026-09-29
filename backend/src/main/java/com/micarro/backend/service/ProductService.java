@@ -21,12 +21,20 @@ import com.micarro.backend.repository.ProductRepository;
 public class ProductService {
 
     private final ProductRepository productRepository;
+    private final MainCategoryMapper mainCategoryMapper;
 
-    public ProductService(ProductRepository productRepository) {
+    public ProductService(
+            ProductRepository productRepository,
+            MainCategoryMapper mainCategoryMapper) {
+
         this.productRepository = productRepository;
+        this.mainCategoryMapper = mainCategoryMapper;
     }
 
     public ProductResponse createProduct(Product product) {
+        product.setMainCategory(
+                mainCategoryMapper.map(product.getCategory())
+        );
         return toResponse(productRepository.save(product));
     }
 
@@ -59,13 +67,13 @@ public class ProductService {
 
         Page<Product> page;
         if (hasSearch && hasCategory) {
-            page = productRepository.findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+            page = productRepository.findByNameContainingIgnoreCaseAndMainCategoryIgnoreCase(
                     search.trim(),
                     category.trim(),
                     sortedPageable
             );
         } else if (hasCategory) {
-            page = productRepository.findByCategoryIgnoreCase(
+            page = productRepository.findByMainCategoryIgnoreCase(
                     category.trim(),
                     sortedPageable
             );

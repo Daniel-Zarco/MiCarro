@@ -56,23 +56,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             Pageable pageable
     );
 
-    Page<Product> findByCategoryIgnoreCase(
-            String category,
+    Page<Product> findByMainCategoryIgnoreCase(
+            String mainCategory,
             Pageable pageable
     );
 
-    Page<Product> findByNameContainingIgnoreCaseAndCategoryIgnoreCase(
+    Page<Product> findByNameContainingIgnoreCaseAndMainCategoryIgnoreCase(
             String name,
-            String category,
+            String mainCategory,
             Pageable pageable
     );
 
     @Query("""
-            select new com.micarro.backend.dto.CategoryResponse(p.category, count(p))
+            select new com.micarro.backend.dto.CategoryResponse(p.mainCategory, count(p))
             from Product p
-            where p.category is not null
-            group by p.category
-            order by lower(p.category)
+            where p.mainCategory is not null
+            group by p.mainCategory
+            order by lower(p.mainCategory)
             """)
     List<CategoryResponse> findCategorySummaries();
 
