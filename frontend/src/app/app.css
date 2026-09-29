@@ -852,14 +852,61 @@ input:focus-visible {
   letter-spacing: -0.045em;
 }
 
-/* Vista de categoría: el bloque título (kicker + nombre) se alinea arriba
-   para quedar por encima y separado de la paginación superior. */
+/* Vista interna de categoría: 3 zonas independientes
+   (título | paginación | volver) para que el título nunca invada la paginación. */
+.catalog-heading.is-category-view {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "title pagination back";
+
+  align-items: center;
+
+  gap: 12px;
+}
+
 .catalog-heading.is-category-view > div:first-child {
+  grid-area: title;
+
+  min-width: 0;
+
   align-self: flex-start;
 }
 
 .catalog-heading.is-category-view > div:first-child h2 {
   margin-top: 3px;
+}
+
+.catalog-heading.is-category-view .pagination-heading {
+  grid-area: pagination;
+
+  position: static;
+  transform: none;
+
+  margin: 0;
+
+  justify-self: center;
+}
+
+.catalog-heading.is-category-view .catalog-mode-button {
+  grid-area: back;
+
+  margin-left: 0;
+
+  justify-self: end;
+
+  align-self: center;
+}
+
+/* Si falta espacio en anchos intermedios, el título pasa a una fila superior
+   y la paginación queda debajo, en lugar de solaparse. */
+@media (max-width: 1100px) {
+
+  .catalog-heading.is-category-view {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "title back"
+      "pagination pagination";
+  }
 }
 
 .catalog-mode-button {
