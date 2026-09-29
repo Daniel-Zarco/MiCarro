@@ -330,6 +330,27 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
+    void getProducts_sortsByNameDescendingCaseInsensitive() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("manzana", "Manzana", 1, true);
+        product("Pera", (BigDecimal) null, true);
+        product("Arándanos", (BigDecimal) null, true);
+        product("Manzana", (BigDecimal) null, true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "name-desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Pera"))
+                .andExpect(jsonPath("$.content[1].name").value("manzana"))
+                .andExpect(jsonPath("$.content[2].name").value("Manzana"))
+                .andExpect(jsonPath("$.content[3].name").value("Arándanos"));
+    }
+
+    @Test
     void getProducts_combinesSearchAndPriceSort() throws Exception {
 
         productRepository.deleteAll();

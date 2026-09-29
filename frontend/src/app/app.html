@@ -528,7 +528,7 @@
                     [class.is-active]="catalogSort() === option.value"
                   >
                     <span>
-                      {{ option.label }}
+                      {{ optionLabel(option.value) }}
                     </span>
 
                     @if (catalogSort() === option.value) {

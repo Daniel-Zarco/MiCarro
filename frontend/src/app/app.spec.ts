@@ -101,28 +101,57 @@ describe('App', () => {
     expect(element.querySelector('.cart-badge')).toBeNull();
   });
 
-  it('cambia el orden de catálogo y recarga desde la primera página', () => {
+  it('alterna el orden de precio y recarga desde la primera página', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
     const button = element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!;
 
+    const options = () => Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+
     expect(button).not.toBeNull();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog', '');
 
     button.click();
     fixture.detectChanges();
+    expect(options().length).toBe(3);
 
-    const options = Array.from(
-      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
-    );
-    expect(options.length).toBe(5);
+    options()[1].click(); // Precio → menor a mayor
+    fixture.detectChanges();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc', '');
 
-    options[3].click(); // Precio: mayor a menor
+    button.click();
+    fixture.detectChanges();
+    options()[1].click(); // Precio de nuevo → mayor a menor
+    fixture.detectChanges();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', '');
+  });
+
+  it('alterna el orden alfabético y recarga desde la primera página', () => {
+    const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', '');
+    const element = fixture.nativeElement as HTMLElement;
+    const button = element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!;
+
+    const options = () => Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+
+    button.click();
+    fixture.detectChanges();
+    options()[2].click(); // Alfabéticamente → A–Z
+    fixture.detectChanges();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'name', '');
+
+    button.click();
+    fixture.detectChanges();
+    options()[2].click(); // Alfabéticamente de nuevo → Z–A
+    fixture.detectChanges();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'name-desc', '');
   });
 
   it('muestra la lista de categorías al elegir Categorías', () => {
@@ -136,7 +165,7 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Categorías
+    options[0].click(); // Categorías
     fixture.detectChanges();
 
     expect(getCategories).toHaveBeenCalled();
@@ -155,7 +184,7 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Categorías
+    options[0].click(); // Categorías
     fixture.detectChanges();
 
     element.querySelector<HTMLButtonElement>('.category-card')!.click();

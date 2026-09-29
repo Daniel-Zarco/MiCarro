@@ -194,6 +194,31 @@ class ProductServiceTest {
     }
 
     @Test
+    void getProducts_sortsByNameDescendingWithStableSecondaryWhenRequested() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(productRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        productService.getProducts(null, null, "name-desc", pageable);
+
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
+        verify(productRepository).findAll(captor.capture());
+
+        Sort sort = captor.getValue().getSort();
+        Sort.Order nameOrder = sort.getOrderFor("name");
+        Sort.Order idOrder = sort.getOrderFor("id");
+
+        assertThat(nameOrder).isNotNull();
+        assertThat(nameOrder.getDirection()).isEqualTo(Sort.Direction.DESC);
+        assertThat(nameOrder.isIgnoreCase()).isTrue();
+        assertThat(idOrder).isNotNull();
+        assertThat(idOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
     void getProducts_filtersByCategory() {
 
         Pageable pageable = PageRequest.of(0, 5);

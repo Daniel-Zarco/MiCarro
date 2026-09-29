@@ -25,7 +25,9 @@ import { FavoritesMigrationComponent } from './favorites/favorites-migration.com
 import { HistoryComponent } from './history/history.component';
 
 
-type CatalogSort = 'catalog' | 'category' | 'price-asc' | 'price-desc' | 'name';
+type CatalogSortMode = 'catalog' | 'category' | 'price' | 'name';
+type SortDirection = 'asc' | 'desc';
+type CatalogSortBy = 'catalog' | 'price-asc' | 'price-desc' | 'name' | 'name-desc';
 
 
 @Component({
@@ -61,7 +63,23 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly search = signal('');
 
-  protected readonly catalogSort = signal<CatalogSort>('catalog');
+  protected readonly catalogSort = signal<CatalogSortMode>('catalog');
+
+  protected readonly sortDirection = signal<SortDirection>('asc');
+
+  protected readonly sortBy = computed((): CatalogSortBy => {
+    const mode = this.catalogSort();
+
+    if (mode === 'price') {
+      return this.sortDirection() === 'asc' ? 'price-asc' : 'price-desc';
+    }
+
+    if (mode === 'name') {
+      return this.sortDirection() === 'asc' ? 'name' : 'name-desc';
+    }
+
+    return 'catalog';
+  });
 
 
   // =========================
@@ -228,7 +246,7 @@ export class App implements OnInit, OnDestroy {
         page,
         24,
         this.search(),
-        this.catalogSort(),
+        this.sortBy(),
         ''
       )
       .subscribe({
@@ -412,20 +430,44 @@ export class App implements OnInit, OnDestroy {
     );
   }
 
-  protected readonly sortOptions: { value: CatalogSort; label: string }[] = [
-    { value: 'catalog', label: 'Orden del catálogo' },
+  protected readonly sortOptions: { value: CatalogSortMode; label: string }[] = [
     { value: 'category', label: 'Categorías' },
-    { value: 'price-asc', label: 'Precio: menor a mayor' },
-    { value: 'price-desc', label: 'Precio: mayor a menor' },
-    { value: 'name', label: 'Nombre A-Z' },
+    { value: 'price', label: 'Precio' },
+    { value: 'name', label: 'Alfabéticamente' },
   ];
 
   protected readonly sortOpen = signal(false);
 
-  protected readonly sortLabel = computed(
-    () => this.sortOptions.find(option => option.value === this.catalogSort())?.label
-      ?? 'Orden del catálogo'
-  );
+  protected readonly sortLabel = computed(() => {
+    const mode = this.catalogSort();
+    const direction = this.sortDirection();
+
+    if (mode === 'category') {
+      return 'Categorías';
+    }
+
+    if (mode === 'price') {
+      return direction === 'asc' ? 'Precio ↑' : 'Precio ↓';
+    }
+
+    if (mode === 'name') {
+      return direction === 'asc'
+        ? 'Alfabéticamente A–Z'
+        : 'Alfabéticamente Z–A';
+    }
+
+    return 'Orden del catálogo';
+  });
+
+  protected optionLabel(value: CatalogSortMode): string {
+
+    if (this.catalogSort() !== value) {
+      return this.sortOptions.find(option => option.value === value)?.label
+        ?? value;
+    }
+
+    return this.sortLabel();
+  }
 
   protected toggleSort(): void {
     this.sortOpen.update(open => !open);
@@ -435,18 +477,26 @@ export class App implements OnInit, OnDestroy {
     this.sortOpen.set(false);
   }
 
-  protected selectSort(value: CatalogSort): void {
-
-    this.catalogSort.set(value);
-    this.sortOpen.set(false);
+  protected selectSort(value: CatalogSortMode): void {
 
     if (value === 'category') {
+      this.catalogSort.set('category');
       this.selectedCategory.set(null);
+      this.sortOpen.set(false);
       this.loadCategories();
       return;
     }
 
+    // Precio / Alfabéticamente: cada pulsación alterna la dirección.
+    if (this.catalogSort() === value) {
+      this.sortDirection.update(dir => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.catalogSort.set(value);
+      this.sortDirection.set('asc');
+    }
+
     this.selectedCategory.set(null);
+    this.sortOpen.set(false);
 
     this.loadProducts(0);
   }

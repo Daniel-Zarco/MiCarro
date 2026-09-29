@@ -50,6 +50,9 @@ public class ProductService {
     private static final Sort NAME_SORT =
             Sort.by(Sort.Order.asc("name").ignoreCase(), Sort.Order.asc("id"));
 
+    private static final Sort NAME_DESC_SORT =
+            Sort.by(Sort.Order.desc("name").ignoreCase(), Sort.Order.asc("id"));
+
     public List<CategoryResponse> getCategories() {
         return productRepository.findCategorySummaries();
     }
@@ -101,6 +104,7 @@ public class ProductService {
             case "price-asc" -> PRICE_ASC_SORT;
             case "price-desc" -> PRICE_DESC_SORT;
             case "name" -> NAME_SORT;
+            case "name-desc" -> NAME_DESC_SORT;
             default -> DEFAULT_PRODUCT_SORT;
         };
 
