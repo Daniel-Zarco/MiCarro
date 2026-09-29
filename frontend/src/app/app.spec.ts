@@ -100,14 +100,20 @@ describe('App', () => {
     fixture.detectChanges();
 
     const element = fixture.nativeElement as HTMLElement;
-    const select = element.querySelector<HTMLSelectElement>('.catalog-sort select')!;
+    const button = element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!;
 
-    expect(select).not.toBeNull();
-    expect(select.options.length).toBe(5);
+    expect(button).not.toBeNull();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog');
 
-    select.value = 'price-desc';
-    select.dispatchEvent(new Event('change'));
+    button.click();
+    fixture.detectChanges();
+
+    const options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    expect(options.length).toBe(5);
+
+    options[3].click(); // Precio: mayor a menor
     fixture.detectChanges();
 
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc');

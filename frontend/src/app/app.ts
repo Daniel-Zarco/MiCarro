@@ -24,6 +24,9 @@ import { FavoritesMigrationComponent } from './favorites/favorites-migration.com
 import { HistoryComponent } from './history/history.component';
 
 
+type CatalogSort = 'catalog' | 'category' | 'price-asc' | 'price-desc' | 'name';
+
+
 @Component({
   selector: 'app-root',
   templateUrl: './app.html',
@@ -57,8 +60,7 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly search = signal('');
 
-  protected readonly catalogSort =
-    signal<'catalog' | 'category' | 'price-asc' | 'price-desc' | 'name'>('catalog');
+  protected readonly catalogSort = signal<CatalogSort>('catalog');
 
 
   // =========================
@@ -282,12 +284,33 @@ export class App implements OnInit, OnDestroy {
     );
   }
 
-  protected onSortChange(event: Event): void {
+  protected readonly sortOptions: { value: CatalogSort; label: string }[] = [
+    { value: 'catalog', label: 'Orden del catálogo' },
+    { value: 'category', label: 'Categorías' },
+    { value: 'price-asc', label: 'Precio: menor a mayor' },
+    { value: 'price-desc', label: 'Precio: mayor a menor' },
+    { value: 'name', label: 'Nombre A-Z' },
+  ];
 
-    const value = (event.target as HTMLSelectElement)
-      .value as 'catalog' | 'category' | 'price-asc' | 'price-desc' | 'name';
+  protected readonly sortOpen = signal(false);
+
+  protected readonly sortLabel = computed(
+    () => this.sortOptions.find(option => option.value === this.catalogSort())?.label
+      ?? 'Orden del catálogo'
+  );
+
+  protected toggleSort(): void {
+    this.sortOpen.update(open => !open);
+  }
+
+  protected closeSort(): void {
+    this.sortOpen.set(false);
+  }
+
+  protected selectSort(value: CatalogSort): void {
 
     this.catalogSort.set(value);
+    this.sortOpen.set(false);
 
     this.loadProducts(0);
   }
@@ -475,6 +498,10 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected onEscape(): void {
+    if (this.sortOpen()) {
+      this.sortOpen.set(false);
+    }
+
     if (this.expandedProduct()) {
       this.closeCardModal();
     }

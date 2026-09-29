@@ -443,37 +443,105 @@
 
         @if (!favoritesView() && !recentView()) {
 
-          <label class="catalog-sort">
+          <div class="sort-dropdown" [class.is-open]="sortOpen()">
 
-            <span>Ordenar por</span>
-
-            <select
-              [value]="catalogSort()"
-              (change)="onSortChange($event)"
-              aria-label="Ordenar por"
+            <button
+              class="sort-dropdown-button"
+              type="button"
+              (click)="toggleSort()"
+              [attr.aria-expanded]="sortOpen()"
+              aria-haspopup="true"
             >
-              <option value="catalog">
-                Orden del catálogo
-              </option>
+              <svg
+                class="sort-dropdown-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 6h16M7 12h10M10 18h4"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                />
+              </svg>
 
-              <option value="category">
-                Categorías
-              </option>
+              <span class="sort-dropdown-label">
+                <span class="sort-dropdown-label-text">
+                  Ordenar por
+                </span>
 
-              <option value="price-asc">
-                Precio: menor a mayor
-              </option>
+                <strong class="sort-dropdown-value">
+                  {{ sortLabel() }}
+                </strong>
+              </span>
 
-              <option value="price-desc">
-                Precio: mayor a menor
-              </option>
+              <svg
+                class="sort-dropdown-chevron"
+                viewBox="0 0 20 20"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="m6 7.5 4 4 4-4"
+                  stroke="currentColor"
+                  stroke-width="1.7"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+            </button>
 
-              <option value="name">
-                Nombre A-Z
-              </option>
-            </select>
 
-          </label>
+            @if (sortOpen()) {
+
+              <div
+                class="sort-dropdown-backdrop"
+                (click)="closeSort()"
+                aria-hidden="true"
+              ></div>
+
+              <div
+                class="sort-dropdown-menu"
+                role="menu"
+                aria-label="Ordenar por"
+              >
+                @for (option of sortOptions; track option.value) {
+
+                  <button
+                    type="button"
+                    role="menuitem"
+                    (click)="selectSort(option.value)"
+                    [class.is-active]="catalogSort() === option.value"
+                  >
+                    <span>
+                      {{ option.label }}
+                    </span>
+
+                    @if (catalogSort() === option.value) {
+                      <svg
+                        class="sort-dropdown-check"
+                        viewBox="0 0 20 20"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="m4.5 10.5 3.5 3.5 7-7.5"
+                          stroke="currentColor"
+                          stroke-width="1.8"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
+                      </svg>
+                    }
+                  </button>
+
+                }
+              </div>
+
+            }
+
+          </div>
 
         }
 
