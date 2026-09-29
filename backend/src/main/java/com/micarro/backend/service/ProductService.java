@@ -31,11 +31,15 @@ public class ProductService {
     private static final Sort DEFAULT_PRODUCT_SORT =
             Sort.by(Sort.Order.asc("catalogOrder"));
 
+    private static final Sort PRICE_ASC_SORT =
+            Sort.by(Sort.Order.asc("price").nullsLast());
+
     public PageResponse<ProductResponse> getProducts(
             String search,
+            String sortBy,
             Pageable pageable) {
 
-        Pageable sortedPageable = withDefaultSort(pageable);
+        Pageable sortedPageable = withSort(pageable, sortBy);
 
         Page<Product> page = (search == null || search.isBlank())
                 ? productRepository.findAll(sortedPageable)
@@ -53,11 +57,17 @@ public class ProductService {
         );
     }
 
-    private Pageable withDefaultSort(Pageable pageable) {
+    private Pageable withSort(Pageable pageable, String sortBy) {
+
+        Sort sort = switch (sortBy == null ? "catalog" : sortBy) {
+            case "price-asc" -> PRICE_ASC_SORT;
+            default -> DEFAULT_PRODUCT_SORT;
+        };
+
         return PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
-                DEFAULT_PRODUCT_SORT
+                sort
         );
     }
 

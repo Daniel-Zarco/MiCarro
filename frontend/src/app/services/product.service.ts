@@ -18,12 +18,14 @@ export class ProductService {
   getProducts(
     page = 0,
     size = 24,
-    search = ''
+    search = '',
+    sortBy = 'catalog'
   ): Observable<PageResponse<Product>> {
   
     let params = new HttpParams()
       .set('page', page)
-      .set('size', size);
+      .set('size', size)
+      .set('sortBy', sortBy);
   
     if (search.trim()) {
       params = params.set('search', search.trim());

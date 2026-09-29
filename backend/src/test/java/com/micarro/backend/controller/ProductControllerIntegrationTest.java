@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -70,6 +71,21 @@ class ProductControllerIntegrationTest {
         product.setName(name);
         product.setCategory(category);
         product.setCatalogOrder(catalogOrder);
+        product.setSource("MERCADONA");
+        product.setActive(active);
+
+        return productRepository.save(product);
+    }
+
+    private Product product(
+            String name,
+            BigDecimal price,
+            boolean active) {
+
+        Product product = new Product();
+        product.setExternalId(uniqueExternalId());
+        product.setName(name);
+        product.setPrice(price);
         product.setSource("MERCADONA");
         product.setActive(active);
 
@@ -173,6 +189,70 @@ class ProductControllerIntegrationTest {
                 .andExpect(jsonPath("$.content[1].name").value("Manzana"))
                 .andExpect(jsonPath("$.content[2].name").value("Brócoli"))
                 .andExpect(jsonPath("$.content[3].name").value("Zanahoria"));
+    }
+
+    @Test
+    void getProducts_sortsByPriceAscendingWithNullsLast() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("Sin precio", (BigDecimal) null, true);
+        product("Caro", new BigDecimal("9.99"), true);
+        product("Barato", new BigDecimal("1.50"), true);
+        product("Medio", new BigDecimal("5.00"), true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "price-asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Barato"))
+                .andExpect(jsonPath("$.content[1].name").value("Medio"))
+                .andExpect(jsonPath("$.content[2].name").value("Caro"))
+                .andExpect(jsonPath("$.content[3].name").value("Sin precio"));
+    }
+
+    @Test
+    void getProducts_combinesSearchAndPriceSort() throws Exception {
+
+        productRepository.deleteAll();
+
+        String token = UUID.randomUUID().toString();
+
+        product("B " + token, new BigDecimal("9.99"), true);
+        product("A " + token, new BigDecimal("1.50"), true);
+        product("C " + token, new BigDecimal("5.00"), true);
+        product("Otro", new BigDecimal("0.50"), true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("search", token)
+                        .param("sortBy", "price-asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content[0].name").value("A " + token))
+                .andExpect(jsonPath("$.content[1].name").value("C " + token))
+                .andExpect(jsonPath("$.content[2].name").value("B " + token));
+    }
+
+    @Test
+    void getProducts_unknownSortByFallsBackToCatalogOrder() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("Zanahoria", "Verdura", 3, true);
+        product("Manzana", "Fruta", 1, true);
+        product("Arándanos", "Fruta", 0, true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "whatever"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].name").value("Arándanos"))
+                .andExpect(jsonPath("$.content[1].name").value("Manzana"))
+                .andExpect(jsonPath("$.content[2].name").value("Zanahoria"));
     }
 
     @Test

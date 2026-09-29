@@ -30,9 +30,10 @@ public class ProductController {
     @GetMapping
     public PageResponse<ProductResponse> getProducts(
             @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "catalog") String sortBy,
             Pageable pageable) {
 
-        return productService.getProducts(search, pageable);
+        return productService.getProducts(search, sortBy, pageable);
     }
 
     @GetMapping("/recent")

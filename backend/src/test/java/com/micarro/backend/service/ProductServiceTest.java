@@ -15,6 +15,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -95,7 +96,7 @@ class ProductServiceTest {
         when(productRepository.findAll(sortedPageable)).thenReturn(page);
 
         PageResponse<ProductResponse> response =
-                productService.getProducts(null, pageable);
+                productService.getProducts(null, "catalog", pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("Pollo");
@@ -116,9 +117,29 @@ class ProductServiceTest {
         when(productRepository.findByNameContainingIgnoreCase(eq("pollo"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
-        productService.getProducts("  pollo  ", pageable);
+        productService.getProducts("  pollo  ", "catalog", pageable);
 
         verify(productRepository).findByNameContainingIgnoreCase("pollo", sortedPageable);
+    }
+
+    @Test
+    void getProducts_sortsByPriceAscendingWithNullsLastWhenRequested() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+
+        when(productRepository.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(), pageable, 0));
+
+        productService.getProducts(null, "price-asc", pageable);
+
+        ArgumentCaptor<Pageable> captor =
+                ArgumentCaptor.forClass(Pageable.class);
+        verify(productRepository).findAll(captor.capture());
+
+        Sort.Order order = captor.getValue().getSort().getOrderFor("price");
+        assertThat(order).isNotNull();
+        assertThat(order.getDirection()).isEqualTo(Sort.Direction.ASC);
+        assertThat(order.getNullHandling()).isEqualTo(Sort.NullHandling.NULLS_LAST);
     }
 
     @Test

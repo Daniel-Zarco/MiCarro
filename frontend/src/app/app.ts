@@ -57,6 +57,9 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly search = signal('');
 
+  protected readonly catalogSort =
+    signal<'catalog' | 'price-asc'>('catalog');
+
 
   // =========================
   // VISTA DE FAVORITOS
@@ -186,7 +189,8 @@ export class App implements OnInit, OnDestroy {
       .getProducts(
         page,
         24,
-        this.search()
+        this.search(),
+        this.catalogSort()
       )
       .subscribe({
 
@@ -276,6 +280,16 @@ export class App implements OnInit, OnDestroy {
     this.searchSubject.next(
       input.value.trim()
     );
+  }
+
+  protected onSortChange(event: Event): void {
+
+    const value = (event.target as HTMLSelectElement)
+      .value as 'catalog' | 'price-asc';
+
+    this.catalogSort.set(value);
+
+    this.loadProducts(0);
   }
 
 

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { of } from 'rxjs';
+import { vi } from 'vitest';
 
 import { App } from './app';
 import { Product } from './models/product';
@@ -19,25 +20,27 @@ describe('App', () => {
     price: 2.5,
   };
 
+  const getProducts = vi.fn(() => of({
+    content: [product],
+    page: 0,
+    totalPages: 1,
+    totalElements: 1,
+    size: 24,
+    first: true,
+    last: true,
+    empty: false,
+  }));
+
   beforeEach(async () => {
+    getProducts.mockClear();
+
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
         provideHttpClient(),
         {
           provide: ProductService,
-          useValue: {
-            getProducts: () => of({
-              content: [product],
-              page: 0,
-              totalPages: 1,
-              totalElements: 1,
-              size: 24,
-              first: true,
-              last: true,
-              empty: false,
-            }),
-          },
+          useValue: { getProducts },
         },
       ],
     }).compileComponents();
@@ -90,5 +93,22 @@ describe('App', () => {
     fixture.detectChanges();
     expect(element.querySelector('.empty-cart')).not.toBeNull();
     expect(element.querySelector('.cart-badge')).toBeNull();
+  });
+
+  it('cambia el orden de catálogo y recarga desde la primera página', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const select = element.querySelector<HTMLSelectElement>('.catalog-sort select')!;
+
+    expect(select).not.toBeNull();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog');
+
+    select.value = 'price-asc';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc');
   });
 });

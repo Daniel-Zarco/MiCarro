@@ -441,6 +441,31 @@
         </div>
 
 
+        @if (!favoritesView() && !recentView()) {
+
+          <label class="catalog-sort">
+
+            <span>Ordenar por</span>
+
+            <select
+              [value]="catalogSort()"
+              (change)="onSortChange($event)"
+              aria-label="Ordenar por"
+            >
+              <option value="catalog">
+                Orden del catálogo
+              </option>
+
+              <option value="price-asc">
+                Precio: menor a mayor
+              </option>
+            </select>
+
+          </label>
+
+        }
+
+
         @if (favoritesView() || recentView()) {
 
           <button
