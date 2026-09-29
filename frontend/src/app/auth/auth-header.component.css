@@ -251,31 +251,62 @@
     var(--green-pale, #edf5ed);
 }
 
-@media (max-width: 560px) {
+@media (max-width: 1024px) {
 
-  .auth-button {
-    min-height: 36px;
-
-    padding: 6px;
-  }
-
-  .auth-button svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .auth-button > span {
-    display: none;
-  }
-
+  .auth-button > span,
   .user-name {
     display: none;
   }
+}
+
+@media (max-width: 720px) {
+
+  .auth-button {
+    min-height: 44px;
+
+    padding: 10px;
+  }
+
+  .auth-button svg {
+    width: 20px;
+    height: 20px;
+  }
 
   .user-button {
-    min-height: 36px;
+    min-height: 44px;
 
-    padding: 5px;
+    padding: 8px;
+  }
+
+  .user-avatar {
+    width: 28px;
+    height: 28px;
+
+    font-size: 0.8rem;
+  }
+
+  .user-chevron {
+    display: none;
+  }
+}
+
+@media (max-width: 390px) {
+
+  .auth-button {
+    min-height: 40px;
+
+    padding: 9px;
+  }
+
+  .auth-button svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .user-button {
+    min-height: 40px;
+
+    padding: 7px;
   }
 
   .user-avatar {
@@ -284,30 +315,25 @@
 
     font-size: 0.75rem;
   }
-
-  .user-chevron {
-    width: 14px;
-    height: 14px;
-  }
 }
 
-@media (max-width: 390px) {
+@media (max-width: 340px) {
 
   .auth-button {
-    min-height: 34px;
+    min-height: 38px;
 
-    padding: 5px;
+    padding: 8px;
   }
 
   .auth-button svg {
-    width: 17px;
-    height: 17px;
+    width: 18px;
+    height: 18px;
   }
 
   .user-button {
-    min-height: 34px;
+    min-height: 38px;
 
-    padding: 4px;
+    padding: 6px;
   }
 
   .user-avatar {
@@ -315,36 +341,5 @@
     height: 24px;
 
     font-size: 0.7rem;
-  }
-
-  .user-chevron {
-    display: none;
-  }
-}
-
-@media (max-width: 320px) {
-
-  .auth-button {
-    min-height: 32px;
-
-    padding: 4px;
-  }
-
-  .auth-button svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .user-button {
-    min-height: 32px;
-
-    padding: 3px;
-  }
-
-  .user-avatar {
-    width: 22px;
-    height: 22px;
-
-    font-size: 0.65rem;
   }
 }

@@ -2039,15 +2039,90 @@ input:focus-visible {
   .hero {
     gap: 50px;
   }
+
+  /* ===== Header: tablet step 1 ===== */
+
+  .header {
+    grid-template-columns:
+      auto
+      minmax(180px, 1fr)
+      auto;
+
+    gap: 20px;
+
+    min-height: 70px;
+
+    padding:
+      0
+      26px;
+  }
+
+  .header-search,
+  .header-search input {
+    min-width: 0;
+  }
+
+  .header-actions {
+    min-width: 0;
+  }
+
+  .header-actions > * {
+    flex: 0 0 auto;
+  }
+
+  .planner-button > span {
+    display: none;
+  }
+}
+
+/* ===== Header: tablet step 2 ===== */
+
+@media (max-width: 1024px) {
+
+  .header-actions {
+    gap: 8px;
+  }
+
+  .planner-button,
+  .favorites-button,
+  .recent-button,
+  .cart-button {
+    min-height: 42px;
+
+    padding:
+      7px
+      11px;
+
+    gap: 7px;
+  }
+
+  .planner-button-chevron {
+    display: none;
+  }
+
+  .favorites-button > span:not(.favorites-badge) {
+    display: none;
+  }
+
+  .recent-button > span {
+    display: none;
+  }
 }
 
 
 @media (max-width: 850px) {
 
+  /* Header keeps the tablet layout; only cart text drops to icon. */
   .header {
-    grid-template-columns:
-      1fr
-      auto;
+    gap: 16px;
+
+    padding:
+      0
+      20px;
+  }
+
+  .cart-button > span:not(.cart-badge) {
+    display: none;
   }
 
   .header-note {
@@ -2093,98 +2168,234 @@ input:focus-visible {
 }
 
 
-@media (max-width: 560px) {
+/* =========================
+   HEADER MOBILE (TWO ROWS)
+   ========================= */
+
+@media (max-width: 720px) {
 
   .header {
-    min-height: 70px;
+    grid-template-columns:
+      auto
+      1fr;
+
+    grid-template-areas:
+      "brand actions"
+      "search search";
+
+    gap:
+      10px
+      14px;
+
+    min-height: 0;
 
     padding:
-      10px
-      16px;
+      12px
+      14px;
   }
 
   .brand {
+    grid-area: brand;
+
     gap: 9px;
   }
 
+  .brand strong {
+    white-space: nowrap;
+
+    font-size: 1.1rem;
+  }
+
   .brand-mark {
-    width: 39px;
-    height: 39px;
+    width: 38px;
+    height: 38px;
 
     border-radius: 12px;
   }
 
-  .brand-copy small {
-    display: none;
+  .brand-mark svg {
+    width: 22px;
+    height: 22px;
   }
 
-  .brand-copy strong {
-    font-size: 1.22rem;
-  }
+  .header-search {
+    grid-area: search;
 
-  .cart-button {
-    min-height: 42px;
+    width: 100%;
+    min-width: 0;
 
     padding:
-      7px
-      8px
-      7px
-      12px;
+      0
+      14px;
+
+    border-radius: 13px;
   }
 
+  .header-search svg {
+    width: 19px;
+    height: 19px;
+  }
+
+  .header-search input {
+    min-width: 0;
+
+    height: 44px;
+
+    font-size: 0.9rem;
+  }
+
+  .header-actions {
+    grid-area: actions;
+
+    justify-self: end;
+
+    gap: 6px;
+  }
+
+  .planner-button,
+  .favorites-button,
+  .recent-button,
+  .cart-button {
+    min-height: 44px;
+
+    padding: 8px;
+
+    gap: 5px;
+
+    border-radius: 12px;
+  }
+
+  .planner-button > span,
+  .favorites-button > span:not(.favorites-badge),
+  .recent-button > span,
   .cart-button > span:not(.cart-badge) {
     display: none;
   }
 
-  .header-actions {
-    gap: 8px;
-  }
-
-  .favorites-button {
-    min-height: 42px;
-
-    padding:
-      7px
-      8px
-      7px
-      12px;
-  }
-
-  .favorites-button > span:not(.favorites-badge) {
-    display: none;
-  }
-
-  .recent-button {
-    min-height: 42px;
-
-    padding:
-      7px
-      8px
-      7px
-      12px;
-  }
-
-  .recent-button > span {
-    display: none;
-  }
-
-  .planner-button {
-    min-height: 42px;
-
-    padding:
-      7px
-      8px
-      7px
-      12px;
-  }
-
-  .planner-button > span {
-    display: none;
-  }
-
   .planner-button-chevron {
-    margin-left: 4px;
+    display: none;
   }
+
+  .planner-button-icon,
+  .favorites-button svg,
+  .recent-button svg,
+  .cart-button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .cart-badge,
+  .favorites-badge {
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 4px;
+
+    border-radius: 6px;
+
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 430px) {
+
+  .header {
+    gap:
+      8px
+      10px;
+
+    padding:
+      10px
+      10px;
+  }
+
+  .brand {
+    gap: 0;
+  }
+
+  .brand strong {
+    display: none;
+  }
+
+  .brand-mark {
+    width: 36px;
+    height: 36px;
+
+    border-radius: 11px;
+  }
+
+  .header-actions {
+    gap: 5px;
+  }
+
+  .planner-button,
+  .favorites-button,
+  .recent-button,
+  .cart-button {
+    min-height: 42px;
+
+    padding: 7px;
+  }
+}
+
+@media (max-width: 390px) {
+
+  .header-search input {
+    font-size: 0.85rem;
+  }
+
+  .planner-button,
+  .favorites-button,
+  .recent-button,
+  .cart-button {
+    min-height: 40px;
+
+    padding: 6px;
+
+    gap: 4px;
+  }
+
+  .planner-button-icon,
+  .favorites-button svg,
+  .recent-button svg,
+  .cart-button svg {
+    width: 19px;
+    height: 19px;
+  }
+}
+
+@media (max-width: 340px) {
+
+  .header {
+    gap:
+      6px
+      8px;
+
+    padding:
+      8px
+      8px;
+  }
+
+  .planner-button,
+  .favorites-button,
+  .recent-button,
+  .cart-button {
+    min-height: 38px;
+
+    padding: 5px;
+  }
+
+  .planner-button-icon,
+  .favorites-button svg,
+  .recent-button svg,
+  .cart-button svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+
+@media (max-width: 560px) {
 
   .main {
     padding-inline: 16px;
@@ -2422,83 +2633,6 @@ input:focus-visible {
    ========================= */
 
 @media (max-width: 560px) {
-  /* Header: search integrated in same row as actions */
-  .header {
-    grid-template-columns: auto 1fr auto;
-    gap: 10px;
-    min-height: 56px;
-    padding: 8px 12px;
-  }
-
-  .brand {
-    gap: 0;
-  }
-
-  .brand strong {
-    font-size: 1.05rem;
-  }
-
-  .brand-mark {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-  }
-
-  .brand-mark svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .header-search {
-    gap: 8px;
-    padding: 0 10px;
-    border-radius: 12px;
-  }
-
-  .header-search svg {
-    width: 17px;
-    height: 17px;
-  }
-
-  .header-search input {
-    height: 38px;
-    font-size: 0.85rem;
-  }
-
-  .header-actions {
-    gap: 5px;
-  }
-
-  .planner-button,
-  .favorites-button,
-  .cart-button {
-    min-height: 36px;
-    padding: 6px;
-    border-radius: 10px;
-    gap: 4px;
-  }
-
-  .planner-button-icon,
-  .favorites-button svg,
-  .cart-button svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .planner-button-chevron {
-    width: 14px;
-    height: 14px;
-    margin: 0;
-  }
-
-  .cart-badge,
-  .favorites-badge {
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
-    border-radius: 6px;
-    font-size: 0.65rem;
-  }
 
   /* Hero: much smaller */
   .hero {
@@ -2683,19 +2817,6 @@ input:focus-visible {
 }
 
 @media (max-width: 430px) {
-  .header {
-    gap: 8px;
-    padding: 7px 10px;
-    min-height: 54px;
-  }
-
-  .brand strong {
-    font-size: 0.95rem;
-  }
-
-  .header-search input {
-    font-size: 0.8rem;
-  }
 
   .hero {
     padding: 16px 0 22px;
@@ -2742,56 +2863,6 @@ input:focus-visible {
 }
 
 @media (max-width: 390px) {
-  .brand strong {
-    display: none;
-  }
-
-  .brand-mark {
-    width: 32px;
-    height: 32px;
-  }
-
-  .header {
-    gap: 7px;
-    padding: 6px 10px;
-  }
-
-  .header-search {
-    padding: 0 8px;
-  }
-
-  .header-search svg {
-    width: 16px;
-    height: 16px;
-  }
-
-  .header-search input {
-    height: 36px;
-    font-size: 0.78rem;
-  }
-
-  .header-actions {
-    gap: 4px;
-  }
-
-  .planner-button,
-  .favorites-button,
-  .cart-button {
-    min-height: 34px;
-    padding: 5px;
-    border-radius: 9px;
-  }
-
-  .planner-button-icon,
-  .favorites-button svg,
-  .cart-button svg {
-    width: 17px;
-    height: 17px;
-  }
-
-  .planner-button-chevron {
-    display: none;
-  }
 
   .hero {
     padding: 14px 0 20px;
@@ -2880,10 +2951,6 @@ input:focus-visible {
 }
 
 @media (max-width: 375px) {
-  .header {
-    gap: 6px;
-    padding: 6px 9px;
-  }
 
   .product-grid {
     gap: 8px;
@@ -2955,46 +3022,6 @@ input:focus-visible {
 }
 
 @media (max-width: 320px) {
-  .header {
-    gap: 5px;
-    padding: 5px 8px;
-    min-height: 50px;
-  }
-
-  .brand-mark {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-  }
-
-  .brand-mark svg {
-    width: 18px;
-    height: 18px;
-  }
-
-  .header-search {
-    padding: 0 7px;
-    border-radius: 10px;
-  }
-
-  .header-search input {
-    font-size: 0.74rem;
-  }
-
-  .planner-button,
-  .favorites-button,
-  .cart-button {
-    min-height: 32px;
-    padding: 4px;
-    border-radius: 8px;
-  }
-
-  .planner-button-icon,
-  .favorites-button svg,
-  .cart-button svg {
-    width: 16px;
-    height: 16px;
-  }
 
   .hero {
     padding: 12px 0 18px;
