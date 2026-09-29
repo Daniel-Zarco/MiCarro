@@ -244,11 +244,11 @@ class ProductControllerIntegrationTest {
 
         productRepository.deleteAll();
 
-        product("Manzanas", "Frutas", 1, true);
-        product("Peras", "Frutas", 0, true);
-        product("Pollo", "Carnes", 3, true);
-        product("Lomo", "Charcutería", 2, true);
-        product("Oculto", "Frutas", 0, false);
+        product("Manzanas", "Manzana y pera", 1, true);
+        product("Peras", "Manzana y pera", 0, true);
+        product("Pollo", "Pollo", 3, true);
+        product("Lomo", "Chorizo", 2, true);
+        product("Oculto", "Manzana y pera", 0, false);
 
         mockMvc.perform(get("/api/products/categories"))
                 .andExpect(status().isOk())
@@ -265,10 +265,10 @@ class ProductControllerIntegrationTest {
 
         productRepository.deleteAll();
 
-        product("Manzanas", "Frutas", 1, true);
-        product("Peras", "Frutas", 0, true);
-        product("Pollo", "Carnes", 3, true);
-        product("Oculta", "Frutas", 0, false);
+        product("Manzanas", "Manzana y pera", 1, true);
+        product("Peras", "Manzana y pera", 0, true);
+        product("Pollo", "Pollo", 3, true);
+        product("Oculta", "Manzana y pera", 0, false);
 
         mockMvc.perform(get("/api/products")
                         .param("page", "0")
@@ -295,8 +295,8 @@ class ProductControllerIntegrationTest {
 
         String token = UUID.randomUUID().toString();
 
-        product("Manzana " + token, "Frutas", 1, true);
-        product("Otro " + token, "Carnes", 0, true);
+        product("Manzana " + token, "Manzana y pera", 1, true);
+        product("Otro " + token, "Pollo", 0, true);
 
         mockMvc.perform(get("/api/products")
                         .param("page", "0")
