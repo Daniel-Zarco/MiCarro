@@ -470,7 +470,7 @@ export class App implements OnInit, OnDestroy {
   protected expandCard(product: Product): void {
     if (
       typeof window === 'undefined' ||
-      !window.matchMedia('(max-width: 850px)').matches
+      !window.matchMedia('(max-width: 1200px)').matches
     ) {
       return;
     }
