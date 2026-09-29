@@ -1,9 +1,11 @@
 import {
   Component,
   computed,
+  ElementRef,
   OnDestroy,
   OnInit,
-  signal
+  signal,
+  viewChild
 } from '@angular/core';
 
 import { NgTemplateOutlet } from '@angular/common';
@@ -104,6 +106,11 @@ export class App implements OnInit, OnDestroy {
   protected readonly cartOpen = signal(false);
 
   protected readonly plannerOpen = signal(false);
+
+  protected readonly mobileSearchOpen = signal(false);
+
+  protected readonly mobileSearchInput =
+    viewChild<ElementRef<HTMLInputElement>>('mobileSearchInput');
 
 
   // =========================
@@ -369,6 +376,37 @@ export class App implements OnInit, OnDestroy {
 
   protected togglePlanner(): void {
     this.plannerOpen.update(open => !open);
+  }
+
+  protected openMobileSearch(): void {
+    this.mobileSearchOpen.set(true);
+
+    requestAnimationFrame(() => {
+      const input = this.mobileSearchInput()?.nativeElement;
+
+      if (input) {
+        input.value = this.search();
+        input.focus();
+      }
+    });
+  }
+
+  protected closeMobileSearch(): void {
+    this.mobileSearchOpen.set(false);
+  }
+
+  protected closeMobileSearchOnBlur(): void {
+    setTimeout(() => {
+      const active = document.activeElement as HTMLElement | null;
+
+      if (active && active.closest('.header-search-mode')) {
+        return;
+      }
+
+      if (this.mobileSearchOpen()) {
+        this.mobileSearchOpen.set(false);
+      }
+    });
   }
 
   protected openAuthModal(): void {

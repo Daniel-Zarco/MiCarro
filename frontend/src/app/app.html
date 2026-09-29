@@ -3,7 +3,10 @@
   <!-- =========================
        HEADER
        ========================= -->
-  <header class="header">
+  <header
+    class="header"
+    [class.search-mode-open]="mobileSearchOpen()"
+  >
 
   <a
     class="brand"
@@ -69,7 +72,96 @@
   </div>
 
 
+  <div class="header-search-mode">
+
+    <div class="header-search-mode-field">
+
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          cx="10.8"
+          cy="10.8"
+          r="6.3"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+
+        <path
+          d="m15.5 15.5 4 4"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+
+      <input
+        #mobileSearchInput
+        type="search"
+        placeholder="Buscar productos..."
+        autocomplete="off"
+        aria-label="Buscar productos"
+        (input)="onSearch($event)"
+        (blur)="closeMobileSearchOnBlur()"
+      >
+
+    </div>
+
+    <button
+      class="header-search-mode-close"
+      type="button"
+      aria-label="Cerrar búsqueda"
+      (mousedown)="$event.preventDefault()"
+      (click)="closeMobileSearch()"
+    >
+      <svg
+        viewBox="0 0 20 20"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="m5 5 10 10M15 5 5 15"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+
+  </div>
+
+
   <div class="header-actions">
+
+    <button
+      class="search-button"
+      type="button"
+      (click)="openMobileSearch()"
+      aria-label="Buscar productos"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <circle
+          cx="10.8"
+          cy="10.8"
+          r="6.3"
+          stroke="currentColor"
+          stroke-width="1.8"
+        />
+
+        <path
+          d="m15.5 15.5 4 4"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
 
     <button
       class="planner-button"
