@@ -852,6 +852,16 @@ input:focus-visible {
   letter-spacing: -0.045em;
 }
 
+/* Vista de categoría: el bloque título (kicker + nombre) se alinea arriba
+   para quedar por encima y separado de la paginación superior. */
+.catalog-heading.is-category-view > div:first-child {
+  align-self: flex-start;
+}
+
+.catalog-heading.is-category-view > div:first-child h2 {
+  margin-top: 3px;
+}
+
 .catalog-mode-button {
   display: flex;
   align-items: center;

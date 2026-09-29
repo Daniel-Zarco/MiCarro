@@ -416,7 +416,12 @@
 
     
     
-      <div class="catalog-heading">
+      <div
+        class="catalog-heading"
+        [class.is-category-view]="
+          catalogSort() === 'category' && !!selectedCategory()
+        "
+      >
 
         <div>
           <span class="section-kicker">
