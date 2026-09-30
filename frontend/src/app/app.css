@@ -867,7 +867,11 @@ input:focus-visible {
   align-items: baseline;
   align-content: start;
 
-  gap: 12px;
+  /* La cabecera se mide por su propio contenido (sin altura mínima
+     heredada del modo flex) y el kicker queda pegado al título. */
+  min-height: 0;
+
+  gap: 6px 12px;
 }
 
 /* En la vista de categoría/grupo el kicker y el título son hijos directos de
