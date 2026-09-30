@@ -1,6 +1,7 @@
 package com.micarro.backend.repository;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import com.micarro.backend.dto.CategoryCount;
 import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.entity.Product;
 
@@ -65,6 +67,38 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             String name,
             String mainCategory,
             Pageable pageable
+    );
+
+    Page<Product> findByMainCategoryIgnoreCaseAndCategoryIn(
+            String mainCategory,
+            Collection<String> categories,
+            Pageable pageable
+    );
+
+    Page<Product> findByNameContainingIgnoreCaseAndMainCategoryIgnoreCaseAndCategoryIn(
+            String name,
+            String mainCategory,
+            Collection<String> categories,
+            Pageable pageable
+    );
+
+    @Query("""
+            select new com.micarro.backend.dto.CategoryCount(p.category, count(p))
+            from Product p
+            where p.mainCategory = :mainCategory
+            group by p.category
+            """)
+    List<CategoryCount> countByCategoryInMainCategory(
+            @Param("mainCategory") String mainCategory
+    );
+
+    @Query("""
+            select distinct p.category
+            from Product p
+            where p.mainCategory = :mainCategory and p.category is not null
+            """)
+    List<String> findDistinctCategoryByMainCategory(
+            @Param("mainCategory") String mainCategory
     );
 
     @Query("""

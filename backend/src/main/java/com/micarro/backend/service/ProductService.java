@@ -2,7 +2,10 @@ package com.micarro.backend.service;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.springframework.data.domain.Page;
@@ -11,7 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import com.micarro.backend.dto.CategoryCount;
 import com.micarro.backend.dto.CategoryResponse;
+import com.micarro.backend.dto.GroupResponse;
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
@@ -22,13 +27,16 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final MainCategoryMapper mainCategoryMapper;
+    private final VisualGroupMapper visualGroupMapper;
 
     public ProductService(
             ProductRepository productRepository,
-            MainCategoryMapper mainCategoryMapper) {
+            MainCategoryMapper mainCategoryMapper,
+            VisualGroupMapper visualGroupMapper) {
 
         this.productRepository = productRepository;
         this.mainCategoryMapper = mainCategoryMapper;
+        this.visualGroupMapper = visualGroupMapper;
     }
 
     public ProductResponse createProduct(Product product) {
@@ -42,24 +50,70 @@ public class ProductService {
             Sort.by(Sort.Order.asc("catalogOrder"));
 
     private static final Sort PRICE_ASC_SORT =
-            Sort.by(Sort.Order.asc("price").nullsLast());
+            Sort.by(
+                    Sort.Order.asc("price").nullsLast(),
+                    Sort.Order.asc("catalogOrder"),
+                    Sort.Order.asc("id")
+            );
 
     private static final Sort PRICE_DESC_SORT =
-            Sort.by(Sort.Order.desc("price").nullsLast());
+            Sort.by(
+                    Sort.Order.desc("price").nullsLast(),
+                    Sort.Order.asc("catalogOrder"),
+                    Sort.Order.asc("id")
+            );
 
     private static final Sort NAME_SORT =
-            Sort.by(Sort.Order.asc("name").ignoreCase(), Sort.Order.asc("id"));
+            Sort.by(
+                    Sort.Order.asc("name").ignoreCase(),
+                    Sort.Order.asc("catalogOrder"),
+                    Sort.Order.asc("id")
+            );
 
     private static final Sort NAME_DESC_SORT =
-            Sort.by(Sort.Order.desc("name").ignoreCase(), Sort.Order.asc("id"));
+            Sort.by(
+                    Sort.Order.desc("name").ignoreCase(),
+                    Sort.Order.asc("catalogOrder"),
+                    Sort.Order.asc("id")
+            );
 
     public List<CategoryResponse> getCategories() {
         return productRepository.findCategorySummaries();
     }
 
+    public List<GroupResponse> getVisualGroups(String mainCategory) {
+
+        Map<String, Long> countsByGroup = new LinkedHashMap<>();
+
+        for (CategoryCount count : productRepository.countByCategoryInMainCategory(mainCategory)) {
+            String group = visualGroupMapper.visualGroup(count.category());
+            if (group == null) {
+                group = VisualGroupMapper.FALLBACK_GROUP;
+            }
+            countsByGroup.merge(group, count.count(), Long::sum);
+        }
+
+        List<GroupResponse> result = new ArrayList<>();
+
+        for (String group : visualGroupMapper.groupsOf(mainCategory)) {
+            Long count = countsByGroup.get(group);
+            if (count != null) {
+                result.add(new GroupResponse(group, count));
+            }
+        }
+
+        Long fallbackCount = countsByGroup.get(VisualGroupMapper.FALLBACK_GROUP);
+        if (fallbackCount != null) {
+            result.add(new GroupResponse(VisualGroupMapper.FALLBACK_GROUP, fallbackCount));
+        }
+
+        return result;
+    }
+
     public PageResponse<ProductResponse> getProducts(
             String search,
             String category,
+            String group,
             String sortBy,
             Pageable pageable) {
 
@@ -67,9 +121,28 @@ public class ProductService {
 
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasCategory = category != null && !category.isBlank();
+        boolean hasGroup = group != null && !group.isBlank();
 
         Page<Product> page;
-        if (hasSearch && hasCategory) {
+        if (hasCategory && hasGroup) {
+            List<String> categories = groupCategories(category.trim(), group.trim());
+            if (categories.isEmpty()) {
+                page = Page.empty(sortedPageable);
+            } else if (hasSearch) {
+                page = productRepository.findByNameContainingIgnoreCaseAndMainCategoryIgnoreCaseAndCategoryIn(
+                        search.trim(),
+                        category.trim(),
+                        categories,
+                        sortedPageable
+                );
+            } else {
+                page = productRepository.findByMainCategoryIgnoreCaseAndCategoryIn(
+                        category.trim(),
+                        categories,
+                        sortedPageable
+                );
+            }
+        } else if (hasSearch && hasCategory) {
             page = productRepository.findByNameContainingIgnoreCaseAndMainCategoryIgnoreCase(
                     search.trim(),
                     category.trim(),
@@ -96,6 +169,18 @@ public class ProductService {
                         .map(this::toResponse)
                         .toList()
         );
+    }
+
+    private List<String> groupCategories(String mainCategory, String group) {
+
+        if (VisualGroupMapper.FALLBACK_GROUP.equals(group)) {
+            return productRepository.findDistinctCategoryByMainCategory(mainCategory)
+                    .stream()
+                    .filter(category -> visualGroupMapper.visualGroup(category) == null)
+                    .toList();
+        }
+
+        return visualGroupMapper.categoriesOf(mainCategory, group);
     }
 
     private Pageable withSort(Pageable pageable, String sortBy) {

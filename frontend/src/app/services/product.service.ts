@@ -3,6 +3,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 import { Category } from '../models/category';
+import { Group } from '../models/group';
 import { Product } from '../models/product';
 import { PageResponse } from '../models/page-response';
 import { environment } from '../../environments/environment';
@@ -21,7 +22,8 @@ export class ProductService {
     size = 24,
     search = '',
     sortBy = 'catalog',
-    category = ''
+    category = '',
+    group = ''
   ): Observable<PageResponse<Product>> {
   
     let params = new HttpParams()
@@ -36,6 +38,10 @@ export class ProductService {
     if (category.trim()) {
       params = params.set('category', category.trim());
     }
+
+    if (group.trim()) {
+      params = params.set('group', group.trim());
+    }
   
     return this.http.get<PageResponse<Product>>(
       this.apiUrl,
@@ -46,6 +52,12 @@ export class ProductService {
   getCategories(): Observable<Category[]> {
     return this.http.get<Category[]>(
       `${this.apiUrl}/categories`
+    );
+  }
+
+  getCategoryGroups(mainCategory: string): Observable<Group[]> {
+    return this.http.get<Group[]>(
+      `${this.apiUrl}/categories/${encodeURIComponent(mainCategory)}/groups`
     );
   }
 

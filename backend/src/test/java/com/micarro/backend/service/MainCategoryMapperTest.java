@@ -52,7 +52,7 @@ class MainCategoryMapperTest {
     @Test
     void knownSubcategoriesCoverage() {
 
-        assertThat(EXPECTED.size()).isEqualTo(410);
+        assertThat(EXPECTED.size()).isEqualTo(411);
     }
 
     @Test
@@ -509,6 +509,7 @@ class MainCategoryMapperTest {
         map.put("Pintalabios cremoso y brillos", MainCategoryMapper.HIGIENE_CUIDADO);
         map.put("Pintalabios mate", MainCategoryMapper.HIGIENE_CUIDADO);
         map.put("Polvos", MainCategoryMapper.HIGIENE_CUIDADO);
+        map.put("Pasta de dientes", MainCategoryMapper.HIGIENE_CUIDADO);
         map.put("Preservativos", MainCategoryMapper.HIGIENE_CUIDADO);
         map.put("Protector solar y aftersun", MainCategoryMapper.HIGIENE_CUIDADO);
         map.put("Protegeslips", MainCategoryMapper.HIGIENE_CUIDADO);

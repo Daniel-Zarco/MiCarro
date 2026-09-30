@@ -431,7 +431,11 @@
                 : recentView()
                   ? 'Novedades'
                   : catalogSort() === 'category'
-                    ? (selectedCategory() ? 'Categoría' : 'Categorías')
+                    ? (selectedGroup()
+                        ? selectedCategory()
+                        : selectedCategory()
+                          ? 'Categoría'
+                          : 'Categorías')
                     : 'Catálogo'
             }}
           </span>
@@ -443,7 +447,9 @@
                 : recentView()
                   ? 'Novedades'
                   : catalogSort() === 'category'
-                    ? (selectedCategory() ?? 'Todas las categorías')
+                    ? (selectedGroup()
+                        ?? selectedCategory()
+                        ?? 'Todas las categorías')
                     : 'Productos'
             }}
           </h2>
@@ -453,7 +459,7 @@
         @if (
           !favoritesView() &&
           !recentView() &&
-          !(catalogSort() === 'category' && selectedCategory())
+          !(catalogSort() === 'category' && !selectedGroup())
         ) {
 
           <div class="sort-dropdown" [class.is-open]="sortOpen()">
@@ -566,14 +572,42 @@
           selectedCategory()
         ) {
 
-          <button
-            class="catalog-mode-button"
-            type="button"
-            (click)="backToCategories()"
-          >
-            <span aria-hidden="true">←</span>
-            Volver a categorías
-          </button>
+          @if (selectedGroup()) {
+
+            <div class="catalog-mode-buttons">
+
+              <button
+                class="catalog-mode-button"
+                type="button"
+                (click)="backToGroups()"
+              >
+                <span aria-hidden="true">←</span>
+                Volver a grupos
+              </button>
+
+              <button
+                class="catalog-mode-button"
+                type="button"
+                (click)="backToCategories()"
+              >
+                <span aria-hidden="true">←</span>
+                Volver a categorías
+              </button>
+
+            </div>
+
+          } @else {
+
+            <button
+              class="catalog-mode-button"
+              type="button"
+              (click)="backToCategories()"
+            >
+              <span aria-hidden="true">←</span>
+              Volver a categorías
+            </button>
+
+          }
 
         } @else if (favoritesView() || recentView()) {
 
@@ -686,9 +720,90 @@
     
     
       <!-- =========================
-           CATEGORY LIST
+           GROUP LIST
            ========================= -->
-      @if (categoryListView()) {
+      @if (groupListView()) {
+
+        @if (loading()) {
+
+          <div
+            class="state-message loading-state"
+            role="status"
+          >
+            <span
+              class="loader"
+              aria-hidden="true"
+            ></span>
+
+            <div>
+              <strong>Cargando grupos</strong>
+              <p>Estamos preparando los grupos de esta categoría.</p>
+            </div>
+          </div>
+
+        } @else if (error()) {
+
+          <div
+            class="state-message error-state"
+            role="alert"
+          >
+            <span
+              class="state-icon"
+              aria-hidden="true"
+            >
+              !
+            </span>
+
+            <div>
+              <strong>No hemos podido cargar los grupos</strong>
+              <p>{{ error() }}</p>
+            </div>
+
+            <button
+              type="button"
+              (click)="loadGroups(selectedCategory()!)"
+            >
+              Reintentar
+            </button>
+          </div>
+
+        } @else if (groups().length === 0) {
+
+          <div class="state-message empty-results">
+            <strong>No hay grupos disponibles</strong>
+            <p>Todavía no hay productos en esta categoría.</p>
+          </div>
+
+        } @else {
+
+          <div class="category-grid">
+
+            @for (grp of groups(); track grp.name) {
+
+              <button
+                type="button"
+                class="category-card"
+                (click)="openGroup(grp.name)"
+              >
+                <strong>{{ grp.name }}</strong>
+
+                <span>
+                  {{ grp.productCount }}
+                  {{
+                    grp.productCount === 1
+                      ? 'producto'
+                      : 'productos'
+                  }}
+                </span>
+              </button>
+
+            }
+
+          </div>
+
+        }
+
+      } @else if (categoryListView()) {
 
         @if (loading()) {
 

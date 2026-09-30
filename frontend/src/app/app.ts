@@ -14,6 +14,7 @@ import { Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { Category } from './models/category';
+import { Group } from './models/group';
 import { Product } from './models/product';
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
@@ -88,7 +89,10 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly categories = signal<Category[]>([]);
   protected readonly selectedCategory = signal<string | null>(null);
-  protected readonly categoryProducts = signal<Product[]>([]);
+
+  protected readonly groups = signal<Group[]>([]);
+  protected readonly selectedGroup = signal<string | null>(null);
+  protected readonly groupProducts = signal<Product[]>([]);
 
 
   // =========================
@@ -128,8 +132,8 @@ export class App implements OnInit, OnDestroy {
     if (this.recentView()) {
       return this.recentProducts();
     }
-    if (this.selectedCategory()) {
-      return this.categoryProducts();
+    if (this.selectedGroup()) {
+      return this.groupProducts();
     }
     return this.products();
   });
@@ -138,6 +142,15 @@ export class App implements OnInit, OnDestroy {
     () =>
       this.catalogSort() === 'category' &&
       !this.selectedCategory() &&
+      !this.favoritesView() &&
+      !this.recentView()
+  );
+
+  protected readonly groupListView = computed(
+    () =>
+      this.catalogSort() === 'category' &&
+      !!this.selectedCategory() &&
+      !this.selectedGroup() &&
       !this.favoritesView() &&
       !this.recentView()
   );
@@ -223,13 +236,12 @@ export class App implements OnInit, OnDestroy {
 
   protected loadProducts(page = 0): void {
 
-    if (this.catalogSort() === 'category' && this.selectedCategory()) {
-      this.loadCategoryProducts(page);
-      return;
-    }
-
     if (this.catalogSort() === 'category') {
-      // Vista de la lista de categorías: la búsqueda no aplica.
+
+      if (this.selectedCategory() && this.selectedGroup()) {
+        this.loadGroupProducts(page);
+      }
+      // Lista de categorías o de grupos: la búsqueda no aplica.
       return;
     }
 
@@ -283,11 +295,12 @@ export class App implements OnInit, OnDestroy {
       });
   }
 
-  protected loadCategoryProducts(page = 0): void {
+  protected loadGroupProducts(page = 0): void {
 
     const category = this.selectedCategory();
+    const group = this.selectedGroup();
 
-    if (!category) {
+    if (!category || !group) {
       return;
     }
 
@@ -299,14 +312,15 @@ export class App implements OnInit, OnDestroy {
         page,
         24,
         this.search(),
-        'catalog',
-        category
+        this.sortBy(),
+        category,
+        group
       )
       .subscribe({
 
         next: (response) => {
 
-          this.categoryProducts.set(response.content);
+          this.groupProducts.set(response.content);
 
           this.currentPage.set(response.page);
           this.totalPages.set(response.totalPages);
@@ -322,12 +336,50 @@ export class App implements OnInit, OnDestroy {
         error: (error) => {
 
           console.error(
-            'Error cargando categoría:',
+            'Error cargando grupo:',
             error
           );
 
           this.error.set(
-            'No se han podido cargar los productos de esta categoría.'
+            'No se han podido cargar los productos de este grupo.'
+          );
+
+          this.loading.set(false);
+        }
+
+      });
+  }
+
+  protected loadGroups(mainCategory: string): void {
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.productService
+      .getCategoryGroups(mainCategory)
+      .subscribe({
+
+        next: (response) => {
+
+          this.groups.set(response);
+
+          this.loading.set(false);
+
+          window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+          });
+        },
+
+        error: (error) => {
+
+          console.error(
+            'Error cargando grupos:',
+            error
+          );
+
+          this.error.set(
+            'No se han podido cargar los grupos de esta categoría.'
           );
 
           this.loading.set(false);
@@ -482,6 +534,7 @@ export class App implements OnInit, OnDestroy {
     if (value === 'category') {
       this.catalogSort.set('category');
       this.selectedCategory.set(null);
+      this.selectedGroup.set(null);
       this.sortOpen.set(false);
       this.loadCategories();
       return;
@@ -496,6 +549,7 @@ export class App implements OnInit, OnDestroy {
     }
 
     this.selectedCategory.set(null);
+    this.selectedGroup.set(null);
     this.sortOpen.set(false);
 
     this.loadProducts(0);
@@ -503,11 +557,26 @@ export class App implements OnInit, OnDestroy {
 
   protected openCategory(name: string): void {
     this.selectedCategory.set(name);
-    this.loadCategoryProducts(0);
+    this.selectedGroup.set(null);
+    this.loadGroups(name);
+  }
+
+  protected openGroup(name: string): void {
+    this.selectedGroup.set(name);
+    this.loadGroupProducts(0);
+  }
+
+  protected backToGroups(): void {
+    const category = this.selectedCategory();
+    this.selectedGroup.set(null);
+    if (category) {
+      this.loadGroups(category);
+    }
   }
 
   protected backToCategories(): void {
     this.selectedCategory.set(null);
+    this.selectedGroup.set(null);
     this.loadCategories();
   }
 
@@ -566,6 +635,7 @@ export class App implements OnInit, OnDestroy {
 
     if (activating) {
       this.selectedCategory.set(null);
+      this.selectedGroup.set(null);
     }
 
     // Al volver al catálogo completo hay que recargar
@@ -587,6 +657,7 @@ export class App implements OnInit, OnDestroy {
 
     if (activating) {
       this.selectedCategory.set(null);
+      this.selectedGroup.set(null);
     }
 
     if (activating) {
@@ -607,6 +678,7 @@ export class App implements OnInit, OnDestroy {
 
     if (this.catalogSort() === 'category') {
       this.selectedCategory.set(null);
+      this.selectedGroup.set(null);
       this.loadCategories();
     } else {
       this.loadProducts(this.currentPage());

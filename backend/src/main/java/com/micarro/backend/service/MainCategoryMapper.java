@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
@@ -561,6 +562,7 @@ public class MainCategoryMapper {
         map.put("pintalabios cremoso y brillos", HIGIENE_CUIDADO);
         map.put("pintalabios mate", HIGIENE_CUIDADO);
         map.put("polvos", HIGIENE_CUIDADO);
+        map.put("pasta de dientes", HIGIENE_CUIDADO);
         map.put("preservativos", HIGIENE_CUIDADO);
         map.put("protector solar y aftersun", HIGIENE_CUIDADO);
         map.put("protegeslips", HIGIENE_CUIDADO);
@@ -631,5 +633,9 @@ public class MainCategoryMapper {
         }
 
         return DEFAULT_MAIN_CATEGORY;
+    }
+
+    public Set<String> knownCategories() {
+        return EXPLICIT.keySet();
     }
 }

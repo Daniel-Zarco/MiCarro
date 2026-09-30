@@ -309,6 +309,80 @@ class ProductControllerIntegrationTest {
     }
 
     @Test
+    void getGroups_returnsVisualGroupsWithCounts() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("Manzanas", "Manzana y pera", 1, true);
+        product("Peras", "Manzana y pera", 0, true);
+        product("Pollo", "Pollo", 2, true);
+        product("Cerdo", "Cerdo", 3, true);
+
+        mockMvc.perform(get("/api/products/categories/Carne/groups"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Aves"))
+                .andExpect(jsonPath("$[0].productCount").value(1))
+                .andExpect(jsonPath("$[1].name").value("Cerdo"))
+                .andExpect(jsonPath("$[1].productCount").value(1));
+
+        mockMvc.perform(get("/api/products/categories/Frutas%20y%20verduras/groups"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Fruta"))
+                .andExpect(jsonPath("$[0].productCount").value(2));
+    }
+
+    @Test
+    void getProducts_filtersByVisualGroup() throws Exception {
+
+        productRepository.deleteAll();
+
+        product("Manzanas", "Manzana y pera", 1, true);
+        product("Peras", "Manzana y pera", 0, true);
+        product("Pollo", "Pollo", 3, true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("category", "Frutas y verduras")
+                        .param("group", "Fruta"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Peras"))
+                .andExpect(jsonPath("$.content[1].name").value("Manzanas"));
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("category", "Frutas y verduras")
+                        .param("group", "Verdura"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void getProducts_combinesSearchAndVisualGroup() throws Exception {
+
+        productRepository.deleteAll();
+
+        String token = UUID.randomUUID().toString();
+
+        product("Manzana " + token, "Manzana y pera", 1, true);
+        product("Pera " + token, "Manzana y pera", 0, true);
+        product("Pollo " + token, "Pollo", 2, true);
+
+        mockMvc.perform(get("/api/products")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("category", "Frutas y verduras")
+                        .param("group", "Fruta")
+                        .param("search", token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content[0].name").value("Pera " + token))
+                .andExpect(jsonPath("$.content[1].name").value("Manzana " + token));
+    }
+
+    @Test
     void getProducts_sortsByNameCaseInsensitiveWithStableIdOrder() throws Exception {
 
         productRepository.deleteAll();

@@ -3,6 +3,7 @@ package com.micarro.backend.controller;
 import java.util.List;
 
 import com.micarro.backend.dto.CategoryResponse;
+import com.micarro.backend.dto.GroupResponse;
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
@@ -35,14 +36,20 @@ public class ProductController {
         return productService.getCategories();
     }
 
+    @GetMapping("/categories/{mainCategory}/groups")
+    public List<GroupResponse> getGroups(@PathVariable String mainCategory) {
+        return productService.getVisualGroups(mainCategory);
+    }
+
     @GetMapping
     public PageResponse<ProductResponse> getProducts(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String category,
+            @RequestParam(required = false) String group,
             @RequestParam(defaultValue = "catalog") String sortBy,
             Pageable pageable) {
 
-        return productService.getProducts(search, category, sortBy, pageable);
+        return productService.getProducts(search, category, group, sortBy, pageable);
     }
 
     @GetMapping("/recent")

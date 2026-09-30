@@ -23,7 +23,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import com.micarro.backend.dto.CategoryCount;
 import com.micarro.backend.dto.CategoryResponse;
+import com.micarro.backend.dto.GroupResponse;
 import com.micarro.backend.dto.PageResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
@@ -38,13 +40,17 @@ class ProductServiceTest {
     @Mock
     private MainCategoryMapper mainCategoryMapper;
 
+    @Mock
+    private VisualGroupMapper visualGroupMapper;
+
     private ProductService productService;
 
     @BeforeEach
     void setUp() {
         productService = new ProductService(
                 productRepository,
-                mainCategoryMapper);
+                mainCategoryMapper,
+                visualGroupMapper);
     }
 
     private Product product(long id, String name, String price) {
@@ -102,7 +108,7 @@ class ProductServiceTest {
         when(productRepository.findAll(sortedPageable)).thenReturn(page);
 
         PageResponse<ProductResponse> response =
-                productService.getProducts(null, null, "catalog", pageable);
+                productService.getProducts(null, null, null, "catalog", pageable);
 
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("Pollo");
@@ -123,7 +129,7 @@ class ProductServiceTest {
         when(productRepository.findByNameContainingIgnoreCase(eq("pollo"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
-        productService.getProducts("  pollo  ", null, "catalog", pageable);
+        productService.getProducts("  pollo  ", null, null, "catalog", pageable);
 
         verify(productRepository).findByNameContainingIgnoreCase("pollo", sortedPageable);
     }
@@ -136,7 +142,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, null, "price-asc", pageable);
+        productService.getProducts(null, null, null, "price-asc", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -156,7 +162,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, null, "price-desc", pageable);
+        productService.getProducts(null, null, null, "price-desc", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -176,7 +182,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, null, "name", pageable);
+        productService.getProducts(null, null, null, "name", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -201,7 +207,7 @@ class ProductServiceTest {
         when(productRepository.findAll(any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-        productService.getProducts(null, null, "name-desc", pageable);
+        productService.getProducts(null, null, null, "name-desc", pageable);
 
         ArgumentCaptor<Pageable> captor =
                 ArgumentCaptor.forClass(Pageable.class);
@@ -227,7 +233,7 @@ class ProductServiceTest {
         when(productRepository.findByMainCategoryIgnoreCase(eq("Fruta"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
-        productService.getProducts(null, "  Fruta  ", "catalog", pageable);
+        productService.getProducts(null, "  Fruta  ", null, "catalog", pageable);
 
         verify(productRepository).findByMainCategoryIgnoreCase("Fruta", sortedPageable);
     }
@@ -242,7 +248,7 @@ class ProductServiceTest {
                 eq("manzana"), eq("Fruta"), eq(sortedPageable)))
                 .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
 
-        productService.getProducts(" manzana ", "Fruta", "catalog", pageable);
+        productService.getProducts(" manzana ", "Fruta", null, "catalog", pageable);
 
         verify(productRepository).findByNameContainingIgnoreCaseAndMainCategoryIgnoreCase(
                 "manzana", "Fruta", sortedPageable);
@@ -264,6 +270,73 @@ class ProductServiceTest {
         assertThat(categories.get(0).getProductCount()).isEqualTo(4);
         assertThat(categories.get(1).getName()).isEqualTo("Frutas");
         assertThat(categories.get(1).getProductCount()).isEqualTo(9);
+    }
+
+    @Test
+    void getVisualGroups_aggregatesCountsByGroupInTreeOrder() {
+
+        when(productRepository.countByCategoryInMainCategory("Higiene y cuidado personal"))
+                .thenReturn(List.of(
+                        new CategoryCount("Champú", 3),
+                        new CategoryCount("Crema de cara", 5),
+                        new CategoryCount("Maquillaje compacto", 2),
+                        new CategoryCount("Nueva desconocida", 1)
+                ));
+        when(visualGroupMapper.visualGroup("Champú")).thenReturn("Cabello");
+        when(visualGroupMapper.visualGroup("Crema de cara")).thenReturn("Cuidado facial");
+        when(visualGroupMapper.visualGroup("Maquillaje compacto")).thenReturn("Maquillaje");
+        when(visualGroupMapper.visualGroup("Nueva desconocida")).thenReturn(null);
+        when(visualGroupMapper.groupsOf("Higiene y cuidado personal"))
+                .thenReturn(List.of("Cabello", "Cuidado facial", "Maquillaje"));
+
+        List<GroupResponse> groups =
+                productService.getVisualGroups("Higiene y cuidado personal");
+
+        assertThat(groups).hasSize(4);
+        assertThat(groups.get(0).getName()).isEqualTo("Cabello");
+        assertThat(groups.get(0).getProductCount()).isEqualTo(3);
+        assertThat(groups.get(1).getName()).isEqualTo("Cuidado facial");
+        assertThat(groups.get(1).getProductCount()).isEqualTo(5);
+        assertThat(groups.get(2).getName()).isEqualTo("Maquillaje");
+        assertThat(groups.get(2).getProductCount()).isEqualTo(2);
+        assertThat(groups.get(3).getName()).isEqualTo("Otros");
+        assertThat(groups.get(3).getProductCount()).isEqualTo(1);
+    }
+
+    @Test
+    void getProducts_filtersByGroupCategories() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Pageable sortedPageable = sortedPageable(pageable);
+
+        when(visualGroupMapper.categoriesOf("Fruta", "Fruta"))
+                .thenReturn(List.of("Manzana y pera", "Melocotón"));
+        when(productRepository.findByMainCategoryIgnoreCaseAndCategoryIn(
+                eq("Fruta"), eq(List.of("Manzana y pera", "Melocotón")), eq(sortedPageable)))
+                .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
+
+        productService.getProducts(null, "Fruta", "Fruta", "catalog", pageable);
+
+        verify(productRepository).findByMainCategoryIgnoreCaseAndCategoryIn(
+                "Fruta", List.of("Manzana y pera", "Melocotón"), sortedPageable);
+    }
+
+    @Test
+    void getProducts_combinesSearchAndGroup() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Pageable sortedPageable = sortedPageable(pageable);
+
+        when(visualGroupMapper.categoriesOf("Fruta", "Fruta"))
+                .thenReturn(List.of("Manzana y pera"));
+        when(productRepository.findByNameContainingIgnoreCaseAndMainCategoryIgnoreCaseAndCategoryIn(
+                eq("manzana"), eq("Fruta"), eq(List.of("Manzana y pera")), eq(sortedPageable)))
+                .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
+
+        productService.getProducts(" manzana ", "Fruta", "Fruta", "catalog", pageable);
+
+        verify(productRepository).findByNameContainingIgnoreCaseAndMainCategoryIgnoreCaseAndCategoryIn(
+                "manzana", "Fruta", List.of("Manzana y pera"), sortedPageable);
     }
 
     @Test

@@ -36,9 +36,15 @@ describe('App', () => {
     { name: 'Frutas', productCount: 9 },
   ]));
 
+  const getCategoryGroups = vi.fn(() => of([
+    { name: 'Fruta', productCount: 6 },
+    { name: 'Verdura', productCount: 3 },
+  ]));
+
   beforeEach(async () => {
     getProducts.mockClear();
     getCategories.mockClear();
+    getCategoryGroups.mockClear();
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -46,7 +52,7 @@ describe('App', () => {
         provideHttpClient(),
         {
           provide: ProductService,
-          useValue: { getProducts, getCategories },
+          useValue: { getProducts, getCategories, getCategoryGroups },
         },
       ],
     }).compileComponents();
@@ -173,7 +179,7 @@ describe('App', () => {
     expect(element.querySelector('#products-title')?.textContent).toContain('Todas las categorías');
   });
 
-  it('abre una categoría, carga sus productos y permite volver', () => {
+  it('abre una categoría, muestra sus grupos y permite volver', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
@@ -187,10 +193,12 @@ describe('App', () => {
     options[0].click(); // Categorías
     fixture.detectChanges();
 
-    element.querySelector<HTMLButtonElement>('.category-card')!.click();
+    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
     fixture.detectChanges();
 
-    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog', 'Bebidas');
+    expect(getCategoryGroups).toHaveBeenCalledWith('Bebidas');
+    expect(getProducts.mock.calls.length).toBe(1); // solo el load inicial
+    expect(element.querySelectorAll('.category-card').length).toBe(2); // grupos
     expect(element.querySelector('#products-title')?.textContent).toContain('Bebidas');
 
     const back = element.querySelector<HTMLButtonElement>('.catalog-mode-button')!;
@@ -198,7 +206,40 @@ describe('App', () => {
 
     back.click();
     fixture.detectChanges();
+    expect(element.querySelectorAll('.category-card').length).toBe(2); // categorías
+  });
 
-    expect(element.querySelector('.category-card')).not.toBeNull();
+  it('abre un grupo, carga sus productos y permite volver a grupos', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
+    fixture.detectChanges();
+
+    const options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    options[0].click(); // Categorías
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // grupo Fruta
+    fixture.detectChanges();
+
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog', 'Bebidas', 'Fruta');
+    expect(element.querySelector('#products-title')?.textContent).toContain('Fruta');
+
+    const backButtons = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.catalog-mode-button')
+    );
+    const backToGroups = backButtons.find(b => b.textContent?.includes('Volver a grupos'))!;
+    expect(backToGroups).toBeTruthy();
+
+    backToGroups.click();
+    fixture.detectChanges();
+    expect(element.querySelectorAll('.category-card').length).toBe(2); // grupos
   });
 });
