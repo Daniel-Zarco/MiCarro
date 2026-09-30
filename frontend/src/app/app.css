@@ -941,11 +941,18 @@ input:focus-visible {
 @media (max-width: 820px) {
 
   .catalog-heading.is-category-view {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
     grid-template-areas:
-      "kicker ."
-      "title back"
-      "sort pagination";
+      "kicker"
+      "title"
+      "back"
+      "sort"
+      "pagination";
+  }
+
+  .catalog-heading.is-category-view .catalog-mode-button,
+  .catalog-heading.is-category-view .catalog-mode-buttons {
+    justify-self: start;
   }
 
   .catalog-heading.is-category-view .sort-dropdown {
@@ -962,7 +969,23 @@ input:focus-visible {
   }
 
   .catalog-heading.is-category-view .pagination-heading {
-    justify-self: end;
+    justify-self: center;
+  }
+
+  /* Botones volver compactos: solo la acción ("Grupos", "Categorías"),
+     sin el prefijo "Volver a" que hacía partir el texto en móvil. */
+  .catalog-mode-button .catalog-mode-button__volver {
+    display: none;
+  }
+
+  .catalog-mode-button .catalog-mode-button__label {
+    text-transform: capitalize;
+  }
+
+  /* Selector de orden en una sola línea: se oculta la etiqueta
+     "ORDENAR POR" y queda [icono  Categorías  ˅]. */
+  .catalog-heading.is-category-view .sort-dropdown-label-text {
+    display: none;
   }
 }
 
