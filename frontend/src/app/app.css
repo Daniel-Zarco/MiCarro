@@ -853,7 +853,10 @@ input:focus-visible {
 }
 
 /* Vista interna de categoría: 3 zonas independientes
-   (título | paginación | volver) para que el título nunca invada la paginación. */
+   (título | paginación | volver) para que el título nunca invada la paginación.
+   La alineación por baseline hace que paginación y volver se alineen con la
+   PRIMERA línea del título (si el título envuelve a 2 líneas, quedan sobre la
+   primera, no centradas respecto al bloque completo). */
 .catalog-heading.is-category-view {
   display: grid;
   grid-template-columns: auto auto 1fr auto;
@@ -861,7 +864,7 @@ input:focus-visible {
     "kicker . . ."
     "title sort pagination back";
 
-  align-items: center;
+  align-items: baseline;
   align-content: start;
 
   gap: 12px;
@@ -869,7 +872,7 @@ input:focus-visible {
 
 /* En la vista de categoría/grupo el kicker y el título son hijos directos de
    la cuadrícula: el kicker ocupa su propia fila y el título comparte fila con
-   el selector, la paginación y el botón volver (así quedan centrados entre sí). */
+   el selector, la paginación y el botón volver (alineados por baseline). */
 .catalog-heading.is-category-view > .section-kicker {
   grid-area: kicker;
 
@@ -888,7 +891,7 @@ input:focus-visible {
   justify-self: start;
 
   /* Sin margen superior: la separación con el kicker la da el gap del grid,
-     y el centro vertical del título queda exactamente alineado con la
+     y la primera línea del título queda alineada por baseline con la
      paginación y el botón volver. */
   margin: 0;
 }
@@ -917,8 +920,6 @@ input:focus-visible {
   margin-left: 0;
 
   justify-self: end;
-
-  align-self: center;
 }
 
 .catalog-mode-buttons {
