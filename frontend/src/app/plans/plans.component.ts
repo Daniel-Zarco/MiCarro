@@ -5,6 +5,7 @@ import {
   output,
   signal
 } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 
 import { SavedPlan, SavedPlanSummary } from '../models/saved-plan';
 import { PlansService } from '../services/plans.service';
@@ -222,9 +223,19 @@ export class PlansComponent {
         // Actualiza el nombre en pantalla sin salir del detalle.
         this.detail.set(updated);
       },
-      error: () => {
+      error: (error: HttpErrorResponse) => {
         this.renaming.set(false);
-        this.renameError.set('No se ha podido actualizar el nombre.');
+
+        // DIAGNÓSTICO TEMPORAL: muestra el status y la respuesta real del
+        // backend para identificar la causa (CORS/404/401...).
+        const backendMessage =
+          (error.error as { message?: string } | null)?.message
+          ?? error.message
+          ?? '';
+
+        this.renameError.set(
+          `No se ha podido actualizar el nombre. (HTTP ${error.status ?? 'desconocido'}${backendMessage ? ' · ' + backendMessage : ''})`
+        );
       }
     });
   }
