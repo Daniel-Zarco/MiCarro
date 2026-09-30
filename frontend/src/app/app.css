@@ -857,14 +857,30 @@ input:focus-visible {
 .catalog-heading.is-category-view {
   display: grid;
   grid-template-columns: auto auto 1fr auto;
-  grid-template-areas: "title sort pagination back";
+  grid-template-areas:
+    "kicker . . ."
+    "title sort pagination back";
 
   align-items: center;
+  align-content: start;
 
   gap: 12px;
 }
 
+/* El bloque título expone kicker y título a la cuadrícula para que el
+   kicker quede en una fila propia y paginación/volver se alineen con el
+   título, no con el bloque completo. */
 .catalog-heading.is-category-view > div:first-child {
+  display: contents;
+}
+
+.catalog-heading.is-category-view > div:first-child .section-kicker {
+  grid-area: kicker;
+
+  justify-self: start;
+}
+
+.catalog-heading.is-category-view > div:first-child h2 {
   grid-area: title;
 
   min-width: 0;
@@ -875,10 +891,6 @@ input:focus-visible {
 
   justify-self: start;
 
-  align-self: flex-start;
-}
-
-.catalog-heading.is-category-view > div:first-child h2 {
   margin-top: 3px;
 }
 
@@ -927,6 +939,7 @@ input:focus-visible {
   .catalog-heading.is-category-view {
     grid-template-columns: 1fr auto;
     grid-template-areas:
+      "kicker ."
       "title back"
       "sort pagination";
   }
