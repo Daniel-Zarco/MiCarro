@@ -66,10 +66,21 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly catalogSort = signal<CatalogSortMode>('catalog');
 
+  // Orden de los productos dentro de un grupo (independiente del estado de vista).
+  protected readonly groupSort = signal<CatalogSortMode>('catalog');
+
   protected readonly sortDirection = signal<SortDirection>('asc');
 
+  // Modo de orden efectivo: dentro de un grupo, el del grupo; fuera, el general.
+  protected readonly activeSort = computed((): CatalogSortMode => {
+    if (this.selectedGroup()) {
+      return this.groupSort();
+    }
+    return this.catalogSort();
+  });
+
   protected readonly sortBy = computed((): CatalogSortBy => {
-    const mode = this.catalogSort();
+    const mode = this.activeSort();
 
     if (mode === 'price') {
       return this.sortDirection() === 'asc' ? 'price-asc' : 'price-desc';
@@ -491,8 +502,17 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly sortOpen = signal(false);
 
+  // Opciones visibles del selector: dentro de un grupo no se ofrece "Categorías",
+  // porque la navegación de salida la hacen los botones ← Grupos / ← Categorías.
+  protected readonly visibleSortOptions = computed(() => {
+    if (this.selectedGroup()) {
+      return this.sortOptions.filter(option => option.value !== 'category');
+    }
+    return this.sortOptions;
+  });
+
   protected readonly sortLabel = computed(() => {
-    const mode = this.catalogSort();
+    const mode = this.activeSort();
     const direction = this.sortDirection();
 
     if (mode === 'catalog') {
@@ -544,6 +564,13 @@ export class App implements OnInit, OnDestroy {
 
   protected selectSort(value: CatalogSortMode): void {
 
+    // Dentro de un grupo: las opciones solo ordenan los productos del grupo
+    // sin salir de él.
+    if (this.selectedGroup()) {
+      this.selectGroupSort(value);
+      return;
+    }
+
     if (value === 'category') {
       this.catalogSort.set('category');
       this.selectedCategory.set(null);
@@ -578,6 +605,27 @@ export class App implements OnInit, OnDestroy {
     this.loadProducts(0);
   }
 
+  protected selectGroupSort(value: CatalogSortMode): void {
+
+    if (value === 'catalog') {
+      this.groupSort.set('catalog');
+      this.sortOpen.set(false);
+      this.loadGroupProducts(0);
+      return;
+    }
+
+    if (this.groupSort() === value) {
+      this.sortDirection.update(dir => (dir === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.groupSort.set(value);
+      this.sortDirection.set('asc');
+    }
+
+    this.sortOpen.set(false);
+
+    this.loadGroupProducts(0);
+  }
+
   protected openCategory(name: string): void {
     this.selectedCategory.set(name);
     this.selectedGroup.set(null);
@@ -586,6 +634,8 @@ export class App implements OnInit, OnDestroy {
 
   protected openGroup(name: string): void {
     this.selectedGroup.set(name);
+    this.groupSort.set('catalog');
+    this.sortDirection.set('asc');
     this.loadGroupProducts(0);
   }
 

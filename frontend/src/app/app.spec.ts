@@ -242,4 +242,58 @@ describe('App', () => {
     fixture.detectChanges();
     expect(element.querySelectorAll('.category-card').length).toBe(2); // grupos
   });
+
+  it('ordena los productos del grupo sin salir de él', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
+    fixture.detectChanges();
+    let options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    options[1].click(); // Categorías
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // grupo Fruta
+    fixture.detectChanges();
+
+    // Dentro del grupo el selector ofrece 3 opciones (sin "Categorías").
+    element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
+    fixture.detectChanges();
+    options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    expect(options.length).toBe(3);
+    expect(options[0].textContent).toContain('Orden por defecto');
+    expect(options[1].textContent).toContain('Precio');
+    expect(options[2].textContent).toContain('A - Z');
+
+    options[1].click(); // Precio ↑
+    fixture.detectChanges();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc', 'Bebidas', 'Fruta');
+    expect(element.querySelector('#products-title')?.textContent).toContain('Fruta');
+
+    element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
+    fixture.detectChanges();
+    options = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
+    );
+    options[1].click(); // Precio de nuevo → ↓
+    fixture.detectChanges();
+    expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', 'Bebidas', 'Fruta');
+
+    // Sigue dentro del grupo: no salió ni cambió la selección.
+    expect(element.querySelector('#products-title')?.textContent).toContain('Fruta');
+    expect(
+      Array.from(
+        element.querySelectorAll<HTMLButtonElement>('.catalog-mode-button')
+      ).some(button => button.textContent?.includes('Volver a grupos'))
+    ).toBe(true);
+  });
 });

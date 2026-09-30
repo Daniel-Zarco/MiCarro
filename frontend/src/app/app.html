@@ -538,19 +538,19 @@
                 role="menu"
                 aria-label="Ordenar por"
               >
-                @for (option of sortOptions; track option.value) {
+                @for (option of visibleSortOptions(); track option.value) {
 
                   <button
                     type="button"
                     role="menuitem"
                     (click)="selectSort(option.value)"
-                    [class.is-active]="catalogSort() === option.value"
+                    [class.is-active]="activeSort() === option.value"
                   >
                     <span>
                       {{ optionLabel(option.value) }}
                     </span>
 
-                    @if (catalogSort() === option.value) {
+                    @if (activeSort() === option.value) {
                       <svg
                         class="sort-dropdown-check"
                         viewBox="0 0 20 20"
