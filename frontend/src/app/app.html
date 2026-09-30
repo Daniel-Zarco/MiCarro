@@ -422,6 +422,7 @@
           catalogSort() === 'category' && !!selectedCategory()
         "
         [class.is-category-list-view]="categoryListView()"
+        [class.is-group-view]="!!selectedGroup()"
       >
 
         @if (catalogSort() === 'category' && selectedCategory()) {

@@ -1005,6 +1005,28 @@ input:focus-visible {
   }
 }
 
+/* Dentro de un grupo (desktop): kicker arriba, título + selector en la misma
+   fila (selector a la derecha) y paginación centrada + volver a la derecha
+   en la fila inferior. */
+@media (min-width: 821px) {
+
+  .catalog-heading.is-category-view.is-group-view {
+    grid-template-columns: auto 1fr auto;
+    grid-template-areas:
+      "kicker . ."
+      "title . sort"
+      "pagination pagination back";
+
+    align-items: center;
+  }
+
+  .catalog-heading.is-category-view.is-group-view > h2 {
+    max-width: none;
+
+    white-space: nowrap;
+  }
+}
+
 .catalog-mode-button {
   display: flex;
   align-items: center;
