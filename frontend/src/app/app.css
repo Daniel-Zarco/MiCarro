@@ -952,6 +952,15 @@ input:focus-visible {
     justify-self: start;
   }
 
+  /* En móvil el botón queda pegado a la izquierda: el menú se ancla a su
+     borde izquierdo y se limita al viewport para no cortarse por la izquierda. */
+  .catalog-heading.is-category-view .sort-dropdown-menu {
+    left: 0;
+    right: auto;
+
+    max-width: calc(100vw - 24px);
+  }
+
   .catalog-heading.is-category-view .pagination-heading {
     justify-self: end;
   }
@@ -1396,6 +1405,13 @@ input:focus-visible {
 
   .sort-dropdown {
     margin-left: 0;
+  }
+
+  .sort-dropdown-menu {
+    left: 0;
+    right: auto;
+
+    max-width: calc(100vw - 24px);
   }
 
   .pagination-heading {
