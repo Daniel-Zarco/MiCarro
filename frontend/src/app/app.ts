@@ -483,6 +483,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   protected readonly sortOptions: { value: CatalogSortMode; label: string }[] = [
+    { value: 'catalog', label: 'Orden por defecto' },
     { value: 'category', label: 'Categorías' },
     { value: 'price', label: 'Precio' },
     { value: 'name', label: 'Alfabéticamente' },
@@ -493,6 +494,10 @@ export class App implements OnInit, OnDestroy {
   protected readonly sortLabel = computed(() => {
     const mode = this.catalogSort();
     const direction = this.sortDirection();
+
+    if (mode === 'catalog') {
+      return 'Orden por defecto';
+    }
 
     if (mode === 'category') {
       return 'Categorías';
@@ -508,11 +513,15 @@ export class App implements OnInit, OnDestroy {
         : 'Alfabéticamente Z - A';
     }
 
-    return 'Orden del catálogo';
+    return 'Orden por defecto';
   });
 
   protected optionLabel(value: CatalogSortMode): string {
     const direction = this.sortDirection();
+
+    if (value === 'catalog') {
+      return 'Orden por defecto';
+    }
 
     if (value === 'category') {
       return 'Categorías';
@@ -541,6 +550,16 @@ export class App implements OnInit, OnDestroy {
       this.selectedGroup.set(null);
       this.sortOpen.set(false);
       this.loadCategories();
+      return;
+    }
+
+    // Orden por defecto: vuelve al catálogo en su orden natural.
+    if (value === 'catalog') {
+      this.catalogSort.set('catalog');
+      this.selectedCategory.set(null);
+      this.selectedGroup.set(null);
+      this.sortOpen.set(false);
+      this.loadProducts(0);
       return;
     }
 

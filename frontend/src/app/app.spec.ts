@@ -123,15 +123,15 @@ describe('App', () => {
 
     button.click();
     fixture.detectChanges();
-    expect(options().length).toBe(3);
+    expect(options().length).toBe(4);
 
-    options()[1].click(); // Precio → menor a mayor
+    options()[2].click(); // Precio → menor a mayor
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc', '');
 
     button.click();
     fixture.detectChanges();
-    options()[1].click(); // Precio de nuevo → mayor a menor
+    options()[2].click(); // Precio de nuevo → mayor a menor
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', '');
   });
@@ -149,13 +149,13 @@ describe('App', () => {
 
     button.click();
     fixture.detectChanges();
-    options()[2].click(); // Alfabéticamente → A–Z
+    options()[3].click(); // Alfabéticamente → A–Z
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'name', '');
 
     button.click();
     fixture.detectChanges();
-    options()[2].click(); // Alfabéticamente de nuevo → Z–A
+    options()[3].click(); // Alfabéticamente de nuevo → Z–A
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'name-desc', '');
   });
@@ -171,7 +171,7 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[0].click(); // Categorías
+    options[1].click(); // Categorías
     fixture.detectChanges();
 
     expect(getCategories).toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[0].click(); // Categorías
+    options[1].click(); // Categorías
     fixture.detectChanges();
 
     element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
@@ -220,7 +220,7 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[0].click(); // Categorías
+    options[1].click(); // Categorías
     fixture.detectChanges();
 
     element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas

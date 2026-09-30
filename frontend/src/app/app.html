@@ -421,6 +421,7 @@
         [class.is-category-view]="
           catalogSort() === 'category' && !!selectedCategory()
         "
+        [class.is-category-list-view]="categoryListView()"
       >
 
         @if (catalogSort() === 'category' && selectedCategory()) {
@@ -475,8 +476,7 @@
 
         @if (
           !favoritesView() &&
-          !recentView() &&
-          !(catalogSort() === 'category' && !selectedGroup())
+          !recentView()
         ) {
 
           <div class="sort-dropdown" [class.is-open]="sortOpen()">

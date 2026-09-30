@@ -852,6 +852,28 @@ input:focus-visible {
   letter-spacing: -0.045em;
 }
 
+/* Vista "Todas las categorías": el selector de orden queda debajo del título,
+   alineado a la izquierda. */
+.catalog-heading.is-category-list-view {
+  flex-direction: column;
+  align-items: flex-start;
+
+  gap: 8px;
+}
+
+.catalog-heading.is-category-list-view .sort-dropdown {
+  margin-left: 0;
+}
+
+/* En esta vista el botón queda a la izquierda: el menú se ancla a su
+   borde izquierdo para no cortarse fuera del viewport. */
+.catalog-heading.is-category-list-view .sort-dropdown-menu {
+  left: 0;
+  right: auto;
+
+  max-width: calc(100vw - 24px);
+}
+
 /* Vista interna de categoría: 3 zonas independientes
    (título | paginación | volver) para que el título nunca invada la paginación.
    La alineación por baseline hace que paginación y volver se alineen con la
