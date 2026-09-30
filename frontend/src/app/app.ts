@@ -771,10 +771,12 @@ export class App implements OnInit, OnDestroy {
 
   protected openCart(): void {
     this.cartOpen.set(true);
+    this.lockPageScroll();
   }
 
   protected closeCart(): void {
     this.cartOpen.set(false);
+    this.unlockPageScroll();
   }
 
   protected togglePlanner(): void {
@@ -896,7 +898,7 @@ export class App implements OnInit, OnDestroy {
 
     this.expandedProduct.set(product);
     this.modalOpen.set(false);
-    document.body.style.overflow = 'hidden';
+    this.lockPageScroll();
 
     requestAnimationFrame(() => {
       this.modalOpen.set(true);
@@ -912,7 +914,7 @@ export class App implements OnInit, OnDestroy {
 
     setTimeout(() => {
       this.expandedProduct.set(null);
-      document.body.style.overflow = '';
+      this.unlockPageScroll();
     }, 220);
   }
 
@@ -937,7 +939,34 @@ export class App implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.searchSubject.complete();
+    this.pageScrollLocks = 0;
     document.body.style.overflow = '';
+  }
+
+
+  // =========================
+  // BLOQUEO DE SCROLL DE LA PÁGINA
+  // =========================
+
+  /*
+   * Impide el scroll del fondo mientras hay un panel/modal abierto (carrito,
+   * modal de producto). Se usa un contador para que varios bloqueos anidados
+   * no se deshagan entre sí y al cerrar se restaura el scroll normal sin
+   * tocar la posición actual de la página.
+   */
+  private pageScrollLocks = 0;
+
+  private lockPageScroll(): void {
+    this.pageScrollLocks += 1;
+    document.body.style.overflow = 'hidden';
+  }
+
+  private unlockPageScroll(): void {
+    this.pageScrollLocks = Math.max(0, this.pageScrollLocks - 1);
+
+    if (this.pageScrollLocks === 0) {
+      document.body.style.overflow = '';
+    }
   }
 
   protected pageSelectorOpen = signal(false);

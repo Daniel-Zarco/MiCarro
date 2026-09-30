@@ -2257,6 +2257,12 @@ input:focus-visible {
 
   overflow-y: auto;
 
+  /* Evita que el scroll del carrito se propague a la página al llegar
+     al inicio/final (scroll chaining) en rueda, trackpad y touch. */
+  overscroll-behavior: contain;
+
+  -webkit-overflow-scrolling: touch;
+
   padding:
     8px 30px
     20px;
