@@ -19,11 +19,14 @@ import { Product } from './models/product';
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
 import { FavoriteService } from './services/favorite.service';
+import { AuthService } from './services/auth.service';
+import { PlansService } from './services/plans.service';
+import { SavedPlanRequest } from './models/saved-plan';
 import { PlannerComponent } from './planner/planner.component';
 import { AuthHeaderComponent } from './auth/auth-header.component';
 import { AuthModalComponent } from './auth/auth-modal.component';
 import { FavoritesMigrationComponent } from './favorites/favorites-migration.component';
-import { HistoryComponent } from './history/history.component';
+import { PlansComponent } from './plans/plans.component';
 
 
 type CatalogSortMode = 'catalog' | 'category' | 'price' | 'name';
@@ -41,7 +44,7 @@ type CatalogSortBy = 'catalog' | 'price-asc' | 'price-desc' | 'name' | 'name-des
     AuthHeaderComponent,
     AuthModalComponent,
     FavoritesMigrationComponent,
-    HistoryComponent
+    PlansComponent
   ],
   host: {
     '(document:keydown.escape)': 'onEscape()'
@@ -187,7 +190,13 @@ export class App implements OnInit, OnDestroy {
 
   protected readonly authModalOpen = signal(false);
 
-  protected readonly historyOpen = signal(false);
+  protected readonly plansOpen = signal(false);
+
+  // Modal "Guardar como plan" desde el carrito.
+  protected readonly savePlanOpen = signal(false);
+  protected readonly planName = signal('');
+  protected readonly savingPlan = signal(false);
+  protected readonly savePlanError = signal<string | null>(null);
 
 
   // =========================
@@ -212,7 +221,9 @@ export class App implements OnInit, OnDestroy {
   constructor(
     private readonly productService: ProductService,
     protected readonly cartService: CartService,
-    protected readonly favoriteService: FavoriteService
+    protected readonly favoriteService: FavoriteService,
+    protected readonly authService: AuthService,
+    private readonly plansService: PlansService
   ) {}
 
 
@@ -809,12 +820,65 @@ export class App implements OnInit, OnDestroy {
     this.authModalOpen.set(false);
   }
 
-  protected openHistory(): void {
-    this.historyOpen.set(true);
+  protected openPlans(): void {
+    this.plansOpen.set(true);
   }
 
-  protected closeHistory(): void {
-    this.historyOpen.set(false);
+  protected closePlans(): void {
+    this.plansOpen.set(false);
+  }
+
+  protected openSavePlan(): void {
+
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    this.planName.set('');
+    this.savePlanError.set(null);
+    this.savePlanOpen.set(true);
+  }
+
+  protected cancelSavePlan(): void {
+    this.savePlanOpen.set(false);
+    this.savePlanError.set(null);
+  }
+
+  protected onPlanName(event: Event): void {
+    this.planName.set((event.target as HTMLInputElement).value);
+  }
+
+  protected savePlan(): void {
+
+    const name = this.planName().trim();
+
+    if (!name) {
+      this.savePlanError.set('Escribe un nombre para el plan.');
+      return;
+    }
+
+    this.savingPlan.set(true);
+    this.savePlanError.set(null);
+
+    const request: SavedPlanRequest = {
+      name,
+      items: this.cartService.items().map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity
+      }))
+    };
+
+    this.plansService.createPlan(request).subscribe({
+      next: () => {
+        this.savingPlan.set(false);
+        this.savePlanOpen.set(false);
+        this.planName.set('');
+      },
+      error: () => {
+        this.savingPlan.set(false);
+        this.savePlanError.set('No se ha podido guardar el plan.');
+      }
+    });
   }
 
 
@@ -855,6 +919,10 @@ export class App implements OnInit, OnDestroy {
   protected onEscape(): void {
     if (this.sortOpen()) {
       this.sortOpen.set(false);
+    }
+
+    if (this.savePlanOpen()) {
+      this.savePlanOpen.set(false);
     }
 
     if (this.expandedProduct()) {

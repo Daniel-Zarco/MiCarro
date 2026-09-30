@@ -2468,6 +2468,55 @@ input:focus-visible {
   cursor: pointer;
 }
 
+.save-plan-button {
+  width: 100%;
+
+  min-height: 44px;
+
+  margin-bottom: 12px;
+
+  padding:
+    10px 16px;
+
+  border:
+    1px solid
+    var(--green);
+
+  border-radius: 12px;
+
+  background:
+    var(--green);
+
+  color: white;
+
+  font-size: 0.88rem;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.save-plan-button:hover {
+  background:
+    var(--green-dark);
+
+  transform:
+    translateY(-1px);
+}
+
+.save-plan-hint {
+  margin:
+    0 0 14px;
+
+  color:
+    var(--muted);
+
+  font-size: 0.72rem;
+}
+
 .cart-total {
   display: flex;
 
@@ -2507,6 +2556,271 @@ input:focus-visible {
 .cart-total > strong {
   font-size: 1.55rem;
   font-weight: 800;
+}
+
+/* =========================
+   SAVE PLAN MODAL
+   ========================= */
+
+.save-plan-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 220;
+
+  background:
+    rgba(23, 56, 44, 0.4);
+}
+
+.save-plan-modal {
+  position: fixed;
+  z-index: 221;
+  top: 50%;
+  left: 50%;
+
+  width: min(440px, calc(100% - 32px));
+
+  transform: translate(-50%, -50%);
+
+  border:
+    1px solid
+    rgba(47, 111, 85, 0.14);
+
+  border-radius: 20px;
+
+  background:
+    var(--paper, #fffefa);
+
+  box-shadow:
+    0 26px 60px
+    rgba(16, 38, 29, 0.22);
+
+  animation:
+    save-plan-pop
+    0.22s
+    ease-out;
+}
+
+@keyframes save-plan-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.96);
+  }
+}
+
+.save-plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 14px;
+
+  padding:
+    22px 24px
+    16px;
+
+  border-bottom:
+    1px solid
+    var(--line);
+}
+
+.save-plan-header h2 {
+  margin:
+    5px 0 0;
+
+  font-size: 1.5rem;
+  font-weight: 750;
+
+  letter-spacing: -0.04em;
+}
+
+.save-plan-close {
+  display: grid;
+
+  width: 40px;
+  height: 40px;
+
+  padding: 0;
+
+  place-items: center;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 12px;
+
+  background: white;
+
+  color:
+    var(--ink-soft);
+
+  cursor: pointer;
+}
+
+.save-plan-close:hover {
+  background:
+    var(--green-pale);
+}
+
+.save-plan-close svg {
+  width: 19px;
+}
+
+.save-plan-body {
+  display: flex;
+  flex-direction: column;
+
+  gap: 12px;
+
+  padding:
+    20px 24px;
+}
+
+.save-plan-label {
+  color:
+    var(--ink-soft);
+
+  font-size: 0.8rem;
+  font-weight: 750;
+}
+
+.save-plan-input {
+  width: 100%;
+
+  min-height: 46px;
+
+  padding:
+    10px 14px;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 12px;
+
+  outline: none;
+
+  background: white;
+
+  color:
+    var(--ink);
+
+  font: inherit;
+  font-size: 0.95rem;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.save-plan-input:focus {
+  border-color:
+    var(--green);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(47, 111, 85, 0.1);
+}
+
+.save-plan-count {
+  margin: 0;
+
+  color:
+    var(--muted);
+
+  font-size: 0.78rem;
+}
+
+.save-plan-error {
+  margin: 0;
+
+  color:
+    var(--danger);
+
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.save-plan-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  gap: 10px;
+
+  padding:
+    0 24px
+    22px;
+}
+
+.save-plan-cancel {
+  min-height: 42px;
+
+  padding:
+    9px 18px;
+
+  border:
+    1px solid
+    var(--line-strong);
+
+  border-radius: 12px;
+
+  background: white;
+
+  color:
+    var(--ink-soft);
+
+  font-weight: 750;
+
+  cursor: pointer;
+}
+
+.save-plan-cancel:hover:not(:disabled) {
+  border-color:
+    var(--green);
+
+  background:
+    var(--green-pale);
+}
+
+.save-plan-submit {
+  min-height: 42px;
+
+  padding:
+    9px 22px;
+
+  border:
+    1px solid
+    var(--green);
+
+  border-radius: 12px;
+
+  background:
+    var(--green);
+
+  color: white;
+
+  font-weight: 800;
+
+  cursor: pointer;
+}
+
+.save-plan-submit:hover:not(:disabled) {
+  background:
+    var(--green-dark);
+}
+
+.save-plan-cancel:disabled,
+.save-plan-submit:disabled {
+  cursor: progress;
+
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .save-plan-modal {
+    animation: none;
+  }
 }
 
 

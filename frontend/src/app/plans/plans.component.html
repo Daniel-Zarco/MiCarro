@@ -1,0 +1,197 @@
+<div
+  class="plans-overlay"
+  (click)="close()"
+  aria-hidden="true"
+></div>
+
+
+<div
+  class="plans-panel"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="plans-title"
+>
+
+  <header class="plans-header">
+
+    <div>
+      <span class="plans-kicker">Tu cuenta</span>
+      <h2 id="plans-title">Mis planes</h2>
+    </div>
+
+    <button
+      class="plans-close"
+      type="button"
+      (click)="close()"
+      aria-label="Cerrar"
+    >
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path
+          d="m5 5 10 10M15 5 5 15"
+          stroke="currentColor"
+          stroke-width="1.7"
+          stroke-linecap="round"
+        />
+      </svg>
+    </button>
+
+  </header>
+
+
+  <div class="plans-body">
+
+    @if (view() === 'list') {
+
+      @if (loading()) {
+        <div class="plans-state" role="status">
+          <span class="plans-spinner" aria-hidden="true"></span>
+          <span>Cargando tus planes…</span>
+        </div>
+      } @else if (error()) {
+        <div class="plans-state plans-error" role="alert">
+          <p>{{ error() }}</p>
+          <button type="button" (click)="loadPlans()">Reintentar</button>
+        </div>
+      } @else if (plans().length === 0) {
+        <div class="plans-state plans-empty">
+          <strong>Todavía no tienes planes guardados</strong>
+          <p>Desde el carrito, pulsa «Guardar como plan» para guardar tu compra.</p>
+        </div>
+      } @else {
+
+        <ul class="plans-list">
+          @for (plan of plans(); track plan.id) {
+            <li class="plans-card">
+
+              <div class="plans-card-info">
+                <span class="plans-date">{{ formatDate(plan.createdAt) }}</span>
+
+                <strong class="plans-name">{{ plan.name }}</strong>
+
+                <span class="plans-numbers">
+                  {{ plan.itemCount }}
+                  {{ plan.itemCount === 1 ? 'producto' : 'productos' }}
+
+                  @if (plan.total != null) {
+                    · Total {{ formatMoney(plan.total) }} €
+                  }
+                </span>
+              </div>
+
+              <div class="plans-card-actions">
+                <button
+                  class="plans-view"
+                  type="button"
+                  [disabled]="deleting()"
+                  (click)="openDetail(plan.id)"
+                >
+                  Ver detalle
+                </button>
+
+                <button
+                  class="plans-delete"
+                  type="button"
+                  [disabled]="deleting()"
+                  (click)="deletePlan(plan.id)"
+                >
+                  Borrar
+                </button>
+              </div>
+
+            </li>
+          }
+        </ul>
+
+      }
+
+    } @else {
+
+      <button
+        class="plans-back"
+        type="button"
+        (click)="backToList()"
+      >
+        <span aria-hidden="true">←</span>
+        Volver al listado
+      </button>
+
+      @if (detailLoading()) {
+        <div class="plans-state" role="status">
+          <span class="plans-spinner" aria-hidden="true"></span>
+          <span>Cargando el plan…</span>
+        </div>
+      } @else if (detailError()) {
+        <div class="plans-state plans-error" role="alert">
+          <p>{{ detailError() }}</p>
+        </div>
+      } @else if (detail(); as plan) {
+
+        <div class="plans-summary">
+          <span class="plans-date">{{ formatDate(plan.createdAt) }}</span>
+          <strong class="plans-summary-name">{{ plan.name }}</strong>
+        </div>
+
+        <ul class="plans-items">
+          @for (item of plan.items; track $index) {
+            <li class="plans-item">
+
+              <div class="plans-item-media">
+                @if (item.imageUrl) {
+                  <img
+                    [src]="item.imageUrl"
+                    [alt]="item.productName ?? ''"
+                  >
+                } @else {
+                  <span aria-hidden="true">—</span>
+                }
+              </div>
+
+              <div class="plans-item-info">
+                <strong>{{ item.productName }}</strong>
+
+                @if (item.format) {
+                  <span class="plans-item-format">{{ item.format }}</span>
+                }
+
+                <span class="plans-item-qty">
+                  {{ item.quantity ?? 1 }} × {{ formatMoney(item.unitPrice) }} €
+                </span>
+              </div>
+
+              <strong class="plans-item-subtotal">
+                {{ formatMoney(item.subtotal) }} €
+              </strong>
+
+            </li>
+          }
+        </ul>
+
+        @if (addNotice(); as notice) {
+          <p class="plans-notice" role="status">{{ notice }}</p>
+        }
+
+        <button
+          class="plans-add"
+          type="button"
+          [disabled]="addingToCart()"
+          (click)="addToCart()"
+        >
+          {{ addingToCart() ? 'Añadiendo…' : 'Añadir al carrito' }}
+        </button>
+
+        <button
+          class="plans-delete plans-delete-detail"
+          type="button"
+          [disabled]="deleting()"
+          (click)="deletePlan(plan.id)"
+        >
+          Borrar plan
+        </button>
+
+      }
+
+    }
+
+  </div>
+
+</div>

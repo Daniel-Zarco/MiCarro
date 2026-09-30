@@ -55,6 +55,7 @@ public class SecurityConfig {
                                 "/api/users/**",
                                 "/api/favorites/**",
                                 "/api/history/**",
+                                "/api/plans/**",
                                 "/api/preferences/**"
                         ).authenticated()
                         .anyRequest().permitAll()
