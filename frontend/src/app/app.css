@@ -981,12 +981,6 @@ input:focus-visible {
   .catalog-mode-button .catalog-mode-button__label {
     text-transform: capitalize;
   }
-
-  /* Selector de orden en una sola línea: se oculta la etiqueta
-     "ORDENAR POR" y queda [icono  Categorías  ˅]. */
-  .catalog-heading.is-category-view .sort-dropdown-label-text {
-    display: none;
-  }
 }
 
 .catalog-mode-button {
@@ -1114,17 +1108,6 @@ input:focus-visible {
   gap: 1px;
 
   text-align: left;
-}
-
-.sort-dropdown-label-text {
-  color: var(--muted);
-
-  font-size: 0.6rem;
-  font-weight: 800;
-
-  letter-spacing: 0.06em;
-
-  text-transform: uppercase;
 }
 
 .sort-dropdown-value {

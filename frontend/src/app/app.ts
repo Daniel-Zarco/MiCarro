@@ -504,21 +504,25 @@ export class App implements OnInit, OnDestroy {
 
     if (mode === 'name') {
       return direction === 'asc'
-        ? 'Alfabéticamente A–Z'
-        : 'Alfabéticamente Z–A';
+        ? 'Alfabéticamente A - Z'
+        : 'Alfabéticamente Z - A';
     }
 
     return 'Orden del catálogo';
   });
 
   protected optionLabel(value: CatalogSortMode): string {
+    const direction = this.sortDirection();
 
-    if (this.catalogSort() !== value) {
-      return this.sortOptions.find(option => option.value === value)?.label
-        ?? value;
+    if (value === 'category') {
+      return 'Categorías';
     }
 
-    return this.sortLabel();
+    if (value === 'price') {
+      return direction === 'asc' ? 'Precio ↑' : 'Precio ↓';
+    }
+
+    return direction === 'asc' ? 'A - Z' : 'Z - A';
   }
 
   protected toggleSort(): void {
