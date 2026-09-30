@@ -423,37 +423,54 @@
         "
       >
 
-        <div>
+        @if (catalogSort() === 'category' && selectedCategory()) {
+
           <span class="section-kicker">
             {{
-              favoritesView()
-                ? 'Favoritos'
-                : recentView()
-                  ? 'Novedades'
-                  : catalogSort() === 'category'
-                    ? (selectedGroup()
-                        ? selectedCategory()
-                        : selectedCategory()
-                          ? 'Categoría'
-                          : 'Categorías')
-                    : 'Catálogo'
+              selectedGroup()
+                ? selectedCategory()
+                : 'Categoría'
             }}
           </span>
 
           <h2 id="products-title">
             {{
-              favoritesView()
-                ? 'Mis favoritos'
-                : recentView()
-                  ? 'Novedades'
-                  : catalogSort() === 'category'
-                    ? (selectedGroup()
-                        ?? selectedCategory()
-                        ?? 'Todas las categorías')
-                    : 'Productos'
+              selectedGroup()
+                ?? selectedCategory()
             }}
           </h2>
-        </div>
+
+        } @else {
+
+          <div>
+            <span class="section-kicker">
+              {{
+                favoritesView()
+                  ? 'Favoritos'
+                  : recentView()
+                    ? 'Novedades'
+                    : catalogSort() === 'category'
+                      ? (selectedCategory()
+                          ? 'Categoría'
+                          : 'Categorías')
+                      : 'Catálogo'
+              }}
+            </span>
+
+            <h2 id="products-title">
+              {{
+                favoritesView()
+                  ? 'Mis favoritos'
+                  : recentView()
+                    ? 'Novedades'
+                    : catalogSort() === 'category'
+                      ? (selectedCategory() ?? 'Todas las categorías')
+                      : 'Productos'
+              }}
+            </h2>
+          </div>
+
+        }
 
 
         @if (

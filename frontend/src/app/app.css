@@ -867,20 +867,16 @@ input:focus-visible {
   gap: 12px;
 }
 
-/* El bloque título expone kicker y título a la cuadrícula para que el
-   kicker quede en una fila propia y paginación/volver se alineen con el
-   título, no con el bloque completo. */
-.catalog-heading.is-category-view > div:first-child {
-  display: contents;
-}
-
-.catalog-heading.is-category-view > div:first-child .section-kicker {
+/* En la vista de categoría/grupo el kicker y el título son hijos directos de
+   la cuadrícula: el kicker ocupa su propia fila y el título comparte fila con
+   el selector, la paginación y el botón volver (así quedan centrados entre sí). */
+.catalog-heading.is-category-view > .section-kicker {
   grid-area: kicker;
 
   justify-self: start;
 }
 
-.catalog-heading.is-category-view > div:first-child h2 {
+.catalog-heading.is-category-view > h2 {
   grid-area: title;
 
   min-width: 0;
@@ -891,7 +887,10 @@ input:focus-visible {
 
   justify-self: start;
 
-  margin-top: 3px;
+  /* Sin margen superior: la separación con el kicker la da el gap del grid,
+     y el centro vertical del título queda exactamente alineado con la
+     paginación y el botón volver. */
+  margin: 0;
 }
 
 .catalog-heading.is-category-view .sort-dropdown {
