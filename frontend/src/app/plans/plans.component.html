@@ -106,14 +106,26 @@
 
     } @else {
 
-      <button
-        class="plans-back"
-        type="button"
-        (click)="backToList()"
-      >
-        <span aria-hidden="true">←</span>
-        Volver al listado
-      </button>
+      <div class="plans-detail-actions">
+
+        <button
+          class="plans-back"
+          type="button"
+          (click)="backToList()"
+        >
+          <span aria-hidden="true">←</span>
+          Volver al listado
+        </button>
+
+        <button
+          class="plans-rename"
+          type="button"
+          (click)="openRename()"
+        >
+          Editar nombre
+        </button>
+
+      </div>
 
       @if (detailLoading()) {
         <div class="plans-state" role="status">
@@ -195,3 +207,92 @@
   </div>
 
 </div>
+
+
+@if (renameOpen()) {
+
+  <div
+    class="plans-rename-backdrop"
+    (click)="cancelRename()"
+    aria-hidden="true"
+  ></div>
+
+  <div
+    class="plans-rename-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="plans-rename-title"
+  >
+
+    <header class="plans-rename-header">
+
+      <div>
+        <span class="plans-kicker">Mis planes</span>
+        <h2 id="plans-rename-title">Editar nombre</h2>
+      </div>
+
+      <button
+        class="plans-rename-close"
+        type="button"
+        (click)="cancelRename()"
+        aria-label="Cerrar"
+      >
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path
+            d="m5 5 10 10M15 5 5 15"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
+
+    </header>
+
+    <div class="plans-rename-body">
+
+      <label class="plans-rename-label" for="plans-rename-input">
+        Nombre del plan
+      </label>
+
+      <input
+        id="plans-rename-input"
+        class="plans-rename-input"
+        type="text"
+        [value]="renameName()"
+        maxlength="80"
+        (input)="onRenameName($event)"
+        (keydown.enter)="saveRename()"
+      >
+
+      @if (renameError(); as error) {
+        <p class="plans-rename-error" role="alert">{{ error }}</p>
+      }
+
+    </div>
+
+    <footer class="plans-rename-actions">
+
+      <button
+        class="plans-rename-cancel"
+        type="button"
+        [disabled]="renaming()"
+        (click)="cancelRename()"
+      >
+        Cancelar
+      </button>
+
+      <button
+        class="plans-rename-submit"
+        type="button"
+        [disabled]="renaming() || !renameName().trim()"
+        (click)="saveRename()"
+      >
+        {{ renaming() ? 'Guardando…' : 'Guardar' }}
+      </button>
+
+    </footer>
+
+  </div>
+
+}

@@ -43,6 +43,11 @@ export class PlansComponent {
   readonly addingToCart = signal(false);
   readonly addNotice = signal<string | null>(null);
 
+  readonly renameOpen = signal(false);
+  readonly renameName = signal('');
+  readonly renaming = signal(false);
+  readonly renameError = signal<string | null>(null);
+
   constructor() {
     this.loadPlans();
   }
@@ -172,6 +177,56 @@ export class PlansComponent {
     this.detail.set(null);
     this.detailError.set(null);
     this.addNotice.set(null);
+  }
+
+  openRename(): void {
+
+    const plan = this.detail();
+
+    if (!plan) {
+      return;
+    }
+
+    this.renameName.set(plan.name);
+    this.renameError.set(null);
+    this.renameOpen.set(true);
+  }
+
+  cancelRename(): void {
+    this.renameOpen.set(false);
+    this.renameError.set(null);
+  }
+
+  onRenameName(event: Event): void {
+    this.renameName.set((event.target as HTMLInputElement).value);
+  }
+
+  saveRename(): void {
+
+    const plan = this.detail();
+    const name = this.renameName().trim();
+
+    if (!plan || !name) {
+      this.renameError.set('Escribe un nombre para el plan.');
+      return;
+    }
+
+    this.renaming.set(true);
+    this.renameError.set(null);
+
+    this.plansService.renamePlan(plan.id, name).subscribe({
+      next: (updated) => {
+        this.renaming.set(false);
+        this.renameOpen.set(false);
+
+        // Actualiza el nombre en pantalla sin salir del detalle.
+        this.detail.set(updated);
+      },
+      error: () => {
+        this.renaming.set(false);
+        this.renameError.set('No se ha podido actualizar el nombre.');
+      }
+    });
   }
 
   close(): void {

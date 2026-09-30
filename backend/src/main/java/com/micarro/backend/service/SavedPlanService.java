@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.dto.SavedPlanItemRequest;
 import com.micarro.backend.dto.SavedPlanItemResponse;
+import com.micarro.backend.dto.SavedPlanNameRequest;
 import com.micarro.backend.dto.SavedPlanRequest;
 import com.micarro.backend.dto.SavedPlanResponse;
 import com.micarro.backend.dto.SavedPlanSummaryResponse;
@@ -95,6 +96,20 @@ public class SavedPlanService {
         SavedPlan plan = findOwnedPlan(user.getId(), id);
 
         savedPlanRepository.delete(plan);
+    }
+
+    @Transactional
+    public SavedPlanResponse rename(String email, Long id, SavedPlanNameRequest request) {
+
+        User user = requireUser(email);
+
+        SavedPlan plan = findOwnedPlan(user.getId(), id);
+
+        plan.setName(request.getName().trim());
+
+        SavedPlan saved = savedPlanRepository.save(plan);
+
+        return toResponse(saved);
     }
 
     /*

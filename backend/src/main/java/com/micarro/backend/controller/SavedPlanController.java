@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.micarro.backend.dto.SavedPlanNameRequest;
 import com.micarro.backend.dto.SavedPlanRequest;
 import com.micarro.backend.dto.SavedPlanResponse;
 import com.micarro.backend.dto.SavedPlanSummaryResponse;
@@ -52,6 +54,15 @@ public class SavedPlanController {
             Authentication authentication) {
 
         return savedPlanService.getPlanById(authentication.getName(), id);
+    }
+
+    @PatchMapping("/{id}/name")
+    public SavedPlanResponse rename(
+            @PathVariable Long id,
+            @Valid @RequestBody SavedPlanNameRequest request,
+            Authentication authentication) {
+
+        return savedPlanService.rename(authentication.getName(), id, request);
     }
 
     @DeleteMapping("/{id}")

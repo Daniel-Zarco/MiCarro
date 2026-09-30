@@ -30,6 +30,13 @@ export class PlansService {
     return this.http.get<SavedPlan>(`${this.apiUrl}/${id}`);
   }
 
+  renamePlan(id: number, name: string): Observable<SavedPlan> {
+    return this.http.patch<SavedPlan>(
+      `${this.apiUrl}/${id}/name`,
+      { name }
+    );
+  }
+
   deletePlan(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }

@@ -59,19 +59,21 @@ describe('PlansComponent', () => {
   let getPlans: ReturnType<typeof vi.fn>;
   let getPlanById: ReturnType<typeof vi.fn>;
   let deletePlan: ReturnType<typeof vi.fn>;
+  let renamePlan: ReturnType<typeof vi.fn>;
   let cartService: CartService;
 
   beforeEach(() => {
     getPlans = vi.fn(() => of([summary]));
     getPlanById = vi.fn(() => of(detail));
     deletePlan = vi.fn(() => of(undefined));
+    renamePlan = vi.fn(() => of({ ...detail, name: 'Compra navideña' }));
 
     TestBed.configureTestingModule({
       imports: [PlansComponent],
       providers: [
         {
           provide: PlansService,
-          useValue: { getPlans, getPlanById, deletePlan },
+          useValue: { getPlans, getPlanById, deletePlan, renamePlan },
         },
       ],
     });
@@ -207,5 +209,53 @@ describe('PlansComponent', () => {
 
     expect(ids).toContain(7);
     expect(ids).toContain(1);
+  });
+
+  it('renombra el plan desde el detalle sin salir de él', () => {
+    const fixture = create();
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.plans-view')!.click();
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.plans-rename')!.click();
+    fixture.detectChanges();
+
+    // El input se precarga con el nombre actual.
+    const input = element.querySelector<HTMLInputElement>('.plans-rename-input')!;
+    expect(input.value).toBe('Compra semanal');
+
+    input.value = 'Compra navideña';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.plans-rename-submit')!.click();
+    fixture.detectChanges();
+
+    expect(renamePlan).toHaveBeenCalledWith(5, 'Compra navideña');
+
+    // Se actualiza en pantalla sin salir del detalle.
+    expect(element.querySelector('.plans-summary-name')?.textContent)
+      .toContain('Compra navideña');
+    expect(element.querySelector('.plans-rename-modal')).toBeNull();
+  });
+
+  it('cancela el renombrado sin cambios', () => {
+    const fixture = create();
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.plans-view')!.click();
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.plans-rename')!.click();
+    fixture.detectChanges();
+
+    element.querySelector<HTMLButtonElement>('.plans-rename-cancel')!.click();
+    fixture.detectChanges();
+
+    expect(renamePlan).not.toHaveBeenCalled();
+    expect(element.querySelector('.plans-rename-modal')).toBeNull();
+    expect(element.querySelector('.plans-summary-name')?.textContent)
+      .toContain('Compra semanal');
   });
 });

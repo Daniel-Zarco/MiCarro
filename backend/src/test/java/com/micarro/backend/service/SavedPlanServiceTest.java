@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.micarro.backend.dto.SavedPlanItemRequest;
 import com.micarro.backend.dto.SavedPlanItemResponse;
+import com.micarro.backend.dto.SavedPlanNameRequest;
 import com.micarro.backend.dto.SavedPlanRequest;
 import com.micarro.backend.dto.SavedPlanResponse;
 import com.micarro.backend.entity.Product;
@@ -266,5 +267,51 @@ class SavedPlanServiceTest {
         assertThat(summaries.get(0).getName()).isEqualTo("Mi plan");
         assertThat(summaries.get(0).getItemCount()).isEqualTo(1);
         assertThat(summaries.get(0).getTotal()).isEqualByComparingTo("3.00");
+    }
+
+    @Test
+    void rename_updatesOwnPlanName() {
+
+        when(userRepository.findByEmailIgnoreCase("dani@example.com"))
+                .thenReturn(Optional.of(user()));
+        when(savedPlanRepository.findByIdAndUserId(5L, 1L))
+                .thenReturn(Optional.of(plan(5L)));
+        when(savedPlanRepository.save(any(SavedPlan.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        SavedPlanNameRequest request = new SavedPlanNameRequest();
+        request.setName("  Compra navideña  ");
+
+        SavedPlanResponse response = savedPlanService.rename(
+                "dani@example.com",
+                5L,
+                request
+        );
+
+        assertThat(response.getName()).isEqualTo("Compra navideña");
+        assertThat(response.getId()).isEqualTo(5L);
+    }
+
+    @Test
+    void rename_throwsNotFoundForOtherUser() {
+
+        when(userRepository.findByEmailIgnoreCase("dani@example.com"))
+                .thenReturn(Optional.of(user()));
+        when(savedPlanRepository.findByIdAndUserId(5L, 1L))
+                .thenReturn(Optional.empty());
+
+        SavedPlanNameRequest request = new SavedPlanNameRequest();
+        request.setName("Otro");
+
+        assertThatExceptionOfType(ResponseStatusException.class)
+                .isThrownBy(() -> savedPlanService.rename(
+                        "dani@example.com",
+                        5L,
+                        request
+                ))
+                .satisfies(exception -> assertThat(exception.getStatusCode())
+                        .isEqualTo(HttpStatus.NOT_FOUND));
+
+        verify(savedPlanRepository, never()).save(any());
     }
 }

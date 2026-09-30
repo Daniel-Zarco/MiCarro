@@ -2,6 +2,7 @@ package com.micarro.backend.controller;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -250,6 +251,111 @@ class SavedPlanControllerIntegrationTest {
         mockMvc.perform(delete("/api/plans/" + planId)
                         .header("Authorization", "Bearer " + otherToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void renamePlanUpdatesName() throws Exception {
+
+        String token = registerAndGetToken(uniqueEmail());
+        Product product = createProduct("Pan", "0.90");
+
+        String created = mockMvc.perform(post("/api/plans")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(planBody(product.getId(), 1)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long planId = ((Number) JsonPath.read(created, "$.id")).longValue();
+
+        mockMvc.perform(patch("/api/plans/" + planId + "/name")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "name": "Compra navideña" }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(planId))
+                .andExpect(jsonPath("$.name").value("Compra navideña"));
+
+        mockMvc.perform(get("/api/plans/" + planId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Compra navideña"));
+    }
+
+    @Test
+    void renameRejectsInvalidName() throws Exception {
+
+        String token = registerAndGetToken(uniqueEmail());
+        Product product = createProduct("Pan", "0.90");
+
+        String created = mockMvc.perform(post("/api/plans")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(planBody(product.getId(), 1)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long planId = ((Number) JsonPath.read(created, "$.id")).longValue();
+
+        mockMvc.perform(patch("/api/plans/" + planId + "/name")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "name": "   " }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(patch("/api/plans/" + planId + "/name")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "name": "%s" }
+                                """.formatted("a".repeat(81))))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void renameRejectsOtherUsersPlan() throws Exception {
+
+        String ownerToken = registerAndGetToken(uniqueEmail());
+        String otherToken = registerAndGetToken(uniqueEmail());
+        Product product = createProduct("Pan", "0.90");
+
+        String created = mockMvc.perform(post("/api/plans")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(planBody(product.getId(), 1)))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        Long planId = ((Number) JsonPath.read(created, "$.id")).longValue();
+
+        mockMvc.perform(patch("/api/plans/" + planId + "/name")
+                        .header("Authorization", "Bearer " + otherToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "name": "Robado" }
+                                """))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void renameRequiresAuthentication() throws Exception {
+
+        mockMvc.perform(patch("/api/plans/1/name")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "name": "Nuevo" }
+                                """))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
