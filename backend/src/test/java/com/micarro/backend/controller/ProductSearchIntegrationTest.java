@@ -159,4 +159,50 @@ class ProductSearchIntegrationTest {
         assertThat(new HashSet<>(seen)).hasSize(count);
         assertThat(seen).isEqualTo(expected);
     }
+
+    @Test
+    void search_leche_prioritizesMilkOverCheese() throws Exception {
+
+        Product leche = product("Leche entera Hacendado", "Leche", "Leche, huevos y lácteos", "Leche", "1", 1);
+        Product queso = product("Queso manchego", "Queso curado", "Leche, huevos y lácteos", "Quesos", "3", 2);
+
+        // El queso solo coincide por compartir mainCategory: debe ir después
+        // de la leche, que coincide en visualGroup/category.
+        mockMvc.perform(get("/api/products").param("search", "leche"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(leche.getId()))
+                .andExpect(jsonPath("$.content[1].id").value(queso.getId()));
+    }
+
+    @Test
+    void search_patataCocida_findsPluralProduct() throws Exception {
+
+        Product patatas = product("Patatas cocidas Hacendado", "Patata", "Frutas y verduras", "Patatas", "1", 1);
+
+        mockMvc.perform(get("/api/products").param("search", "patata cocida"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(patatas.getId()));
+    }
+
+    @Test
+    void search_tomateTriturado_findsPluralProduct() throws Exception {
+
+        Product tomates = product("Tomates triturados", "Tomate", "Frutas y verduras", "Verdura", "1", 1);
+
+        mockMvc.perform(get("/api/products").param("search", "tomate triturado"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(tomates.getId()));
+    }
+
+    @Test
+    void search_galletaChocolate_requiresBothTokens() throws Exception {
+
+        Product galletasChocolate = product("Galletas de chocolate", "Galletas desayuno", "Desayuno y dulces", "Galletas", "1", 1);
+        product("Chocolate negro puro", "Chocolate negro", "Desayuno y dulces", "Cacao y chocolate", "2", 2);
+
+        mockMvc.perform(get("/api/products").param("search", "galleta chocolate"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(galletasChocolate.getId()));
+    }
 }

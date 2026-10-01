@@ -2,6 +2,7 @@ package com.micarro.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -132,12 +133,12 @@ class ProductServiceTest {
         Pageable unsorted = PageRequest.of(0, 5);
 
         when(productRepository.searchWithRelevance(
-                eq("%pollo%"), eq("pollo"), eq(unsorted)))
+                anyString(), eq("pollo"), eq(unsorted)))
                 .thenReturn(new PageImpl<>(List.of(), unsorted, 0));
 
         productService.getProducts("  pollo  ", null, null, "catalog", pageable);
 
-        verify(productRepository).searchWithRelevance("%pollo%", "pollo", unsorted);
+        verify(productRepository).searchWithRelevance(anyString(), eq("pollo"), eq(unsorted));
     }
 
     @Test
@@ -146,12 +147,12 @@ class ProductServiceTest {
         Pageable pageable = PageRequest.of(0, 5);
         Pageable unsorted = PageRequest.of(0, 5);
 
-        when(productRepository.searchByPriceAsc(eq("%pollo%"), eq(unsorted)))
+        when(productRepository.searchByPriceAsc(anyString(), eq(unsorted)))
                 .thenReturn(new PageImpl<>(List.of(), unsorted, 0));
 
         productService.getProducts("pollo", null, null, "price-asc", pageable);
 
-        verify(productRepository).searchByPriceAsc("%pollo%", unsorted);
+        verify(productRepository).searchByPriceAsc(anyString(), eq(unsorted));
     }
 
     @Test

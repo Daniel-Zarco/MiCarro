@@ -288,93 +288,120 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     );
 
     /*
-     * Búsqueda del catálogo expandida a name, main_category, visual_group y
-     * category (case/accent-insensitive). VisualGroupMapper sigue siendo la
-     * única fuente de verdad del grupo visual; la columna es solo el resultado
-     * materializado que rellena el sync.
+     * Búsqueda por tokens con tolerancia singular/plural. Cada token viaja como
+     * una regex con límites de palabra (\m...\M) y alternativa de raíz, unidos
+     * por un separador de control; en SQL se desdoblan con string_to_array +
+     * unnest. Un producto coincide si TODOS los tokens están en name,
+     * main_category, visual_group o category (AND). Case/accent-insensitive.
      */
-    String SEARCH_WHERE = """
+    String TOKEN_SEARCH_WHERE = """
             p.active = true
             and (
-              translate(lower(p.name), 'áéíóúüñ', 'aeiouun') like :like
-              or translate(lower(p.main_category), 'áéíóúüñ', 'aeiouun') like :like
-              or translate(lower(p.visual_group), 'áéíóúüñ', 'aeiouun') like :like
-              or translate(lower(p.category), 'áéíóúüñ', 'aeiouun') like :like
+              select bool_and(regexp_like(
+                translate(lower(
+                  coalesce(p.name, '') || ' ' ||
+                  coalesce(p.main_category, '') || ' ' ||
+                  coalesce(p.visual_group, '') || ' ' ||
+                  coalesce(p.category, '')
+                ), 'áéíóúüñ', 'aeiouun'),
+                t))
+              from unnest(string_to_array(:tokens, chr(1))) t
             )
             """;
 
     /*
-     * Búsqueda con relevancia (orden por defecto): primero coincidencia exacta
-     * con mainCategory, luego visualGroup, luego category, después cualquier
-     * coincidencia parcial de mainCategory/visualGroup/category y finalmente el
-     * nombre. Termina en catalogOrder ASC, id ASC (paginación determinista).
+     * Ranking de relevancia:
+     *   0 mainCategory exacta
+     *   1 visualGroup exacto
+     *   2 category exacta
+     *   3 TODOS los tokens en visualGroup/category
+     *   4 TODOS los tokens en name
+     *   5 TODOS los tokens en mainCategory (coincidencia parcial de categoría)
+     *   6 resto
+     * La coincidencia parcial de mainCategory NUNCA gana al nombre.
      */
+    String TOKEN_RELEVANCE_ORDER = """
+            order by
+              case
+                when translate(lower(coalesce(p.main_category, '')), 'áéíóúüñ', 'aeiouun') = :exact then 0
+                when translate(lower(coalesce(p.visual_group, '')), 'áéíóúüñ', 'aeiouun') = :exact then 1
+                when translate(lower(coalesce(p.category, '')), 'áéíóúüñ', 'aeiouun') = :exact then 2
+                when (
+                  select bool_and(regexp_like(
+                    translate(lower(coalesce(p.visual_group, '') || ' ' || coalesce(p.category, '')), 'áéíóúüñ', 'aeiouun'),
+                    t))
+                  from unnest(string_to_array(:tokens, chr(1))) t
+                ) then 3
+                when (
+                  select bool_and(regexp_like(
+                    translate(lower(coalesce(p.name, '')), 'áéíóúüñ', 'aeiouun'),
+                    t))
+                  from unnest(string_to_array(:tokens, chr(1))) t
+                ) then 4
+                when (
+                  select bool_and(regexp_like(
+                    translate(lower(coalesce(p.main_category, '')), 'áéíóúüñ', 'aeiouun'),
+                    t))
+                  from unnest(string_to_array(:tokens, chr(1))) t
+                ) then 5
+                else 6
+              end,
+              p.catalog_order asc,
+              p.id asc
+            """;
+
     @Query(
-            value = "select p.* from products p where " + SEARCH_WHERE + """
-                    order by
-                      case
-                        when translate(lower(p.main_category), 'áéíóúüñ', 'aeiouun') = :exact then 0
-                        when translate(lower(p.visual_group), 'áéíóúüñ', 'aeiouun') = :exact then 1
-                        when translate(lower(p.category), 'áéíóúüñ', 'aeiouun') = :exact then 2
-                        when translate(lower(p.main_category), 'áéíóúüñ', 'aeiouun') like :like
-                          or translate(lower(p.visual_group), 'áéíóúüñ', 'aeiouun') like :like
-                          or translate(lower(p.category), 'áéíóúüñ', 'aeiouun') like :like then 3
-                        when translate(lower(p.name), 'áéíóúüñ', 'aeiouun') like :like then 4
-                        else 5
-                      end,
-                      p.catalog_order asc,
-                      p.id asc
-                    """,
-            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            value = "select p.* from products p where " + TOKEN_SEARCH_WHERE + TOKEN_RELEVANCE_ORDER,
+            countQuery = "select count(*) from products p where " + TOKEN_SEARCH_WHERE,
             nativeQuery = true
     )
     Page<Product> searchWithRelevance(
-            @Param("like") String like,
+            @Param("tokens") String tokens,
             @Param("exact") String exact,
             Pageable pageable
     );
 
     @Query(
-            value = "select p.* from products p where " + SEARCH_WHERE
+            value = "select p.* from products p where " + TOKEN_SEARCH_WHERE
                     + " order by p.price asc nulls last, p.catalog_order asc, p.id asc",
-            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            countQuery = "select count(*) from products p where " + TOKEN_SEARCH_WHERE,
             nativeQuery = true
     )
     Page<Product> searchByPriceAsc(
-            @Param("like") String like,
+            @Param("tokens") String tokens,
             Pageable pageable
     );
 
     @Query(
-            value = "select p.* from products p where " + SEARCH_WHERE
+            value = "select p.* from products p where " + TOKEN_SEARCH_WHERE
                     + " order by p.price desc nulls last, p.catalog_order asc, p.id asc",
-            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            countQuery = "select count(*) from products p where " + TOKEN_SEARCH_WHERE,
             nativeQuery = true
     )
     Page<Product> searchByPriceDesc(
-            @Param("like") String like,
+            @Param("tokens") String tokens,
             Pageable pageable
     );
 
     @Query(
-            value = "select p.* from products p where " + SEARCH_WHERE
+            value = "select p.* from products p where " + TOKEN_SEARCH_WHERE
                     + " order by lower(p.name) asc, p.catalog_order asc, p.id asc",
-            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            countQuery = "select count(*) from products p where " + TOKEN_SEARCH_WHERE,
             nativeQuery = true
     )
     Page<Product> searchByNameAsc(
-            @Param("like") String like,
+            @Param("tokens") String tokens,
             Pageable pageable
     );
 
     @Query(
-            value = "select p.* from products p where " + SEARCH_WHERE
+            value = "select p.* from products p where " + TOKEN_SEARCH_WHERE
                     + " order by lower(p.name) desc, p.catalog_order asc, p.id asc",
-            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            countQuery = "select count(*) from products p where " + TOKEN_SEARCH_WHERE,
             nativeQuery = true
     )
     Page<Product> searchByNameDesc(
-            @Param("like") String like,
+            @Param("tokens") String tokens,
             Pageable pageable
     );
 }

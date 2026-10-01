@@ -3,11 +3,13 @@ package com.micarro.backend.service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -190,11 +192,11 @@ public class ProductService {
     }
 
     /*
-     * Búsqueda con relevancia: con el orden por defecto (catalog) se aplica el
-     * ranking (mainCategory exacta > visualGroup exacta > category exacta >
-     * coincidencia parcial de mainCategory/visualGroup/category > nombre).
-     * Con sort manual (Precio/A-Z/Z-A) manda por completo el sort seleccionado.
-     * Siempre termina en id ASC (paginación determinista).
+     * Búsqueda por tokens con tolerancia singular/plural. Con el orden por
+     * defecto (catalog) se aplica el ranking (mainCategory exacta >
+     * visualGroup exacto > category exacta > tokens en visualGroup/category >
+     * tokens en name > tokens en mainCategory). Con sort manual (Precio/A-Z/Z-A)
+     * manda por completo el sort seleccionado. Siempre termina en id ASC.
      */
     private Page<Product> searchProducts(
             String search,
@@ -202,7 +204,16 @@ public class ProductService {
             Pageable pageable) {
 
         String normalized = normalizeSearch(search);
-        String like = "%" + normalized + "%";
+
+        List<String> tokens = tokenize(normalized);
+
+        if (tokens.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        String tokensParam = tokens.stream()
+                .map(ProductService::tokenRegex)
+                .collect(Collectors.joining("\u0001"));
 
         Pageable unsorted = PageRequest.of(
                 pageable.getPageNumber(),
@@ -210,12 +221,12 @@ public class ProductService {
         );
 
         return switch (sortBy == null ? "catalog" : sortBy) {
-            case "price-asc" -> productRepository.searchByPriceAsc(like, unsorted);
-            case "price-desc" -> productRepository.searchByPriceDesc(like, unsorted);
-            case "name" -> productRepository.searchByNameAsc(like, unsorted);
-            case "name-desc" -> productRepository.searchByNameDesc(like, unsorted);
+            case "price-asc" -> productRepository.searchByPriceAsc(tokensParam, unsorted);
+            case "price-desc" -> productRepository.searchByPriceDesc(tokensParam, unsorted);
+            case "name" -> productRepository.searchByNameAsc(tokensParam, unsorted);
+            case "name-desc" -> productRepository.searchByNameDesc(tokensParam, unsorted);
             default -> productRepository.searchWithRelevance(
-                    like,
+                    tokensParam,
                     normalized,
                     unsorted
             );
@@ -238,6 +249,36 @@ public class ProductService {
                 .replace('ú', 'u')
                 .replace('ü', 'u')
                 .replace('ñ', 'n');
+    }
+
+    private static List<String> tokenize(String normalized) {
+
+        return Arrays.stream(normalized.split("[^a-z0-9]+"))
+                .filter(token -> !token.isEmpty())
+                .toList();
+    }
+
+    /*
+     * Regex por token con tolerancia singular/plural conservadora: la palabra y
+     * su raíz (si termina en s/es) como alternativas, con un sufijo plural
+     * opcional y límites de palabra. El token completo siempre se mantiene, así
+     * que nunca se pierde la coincidencia exacta.
+     */
+    private static String tokenRegex(String token) {
+
+        String base = token;
+
+        if (token.endsWith("es") && token.length() > 3) {
+            base = token.substring(0, token.length() - 2);
+        } else if (token.endsWith("s") && token.length() > 2) {
+            base = token.substring(0, token.length() - 1);
+        }
+
+        if (base.equals(token)) {
+            return "\\m" + token + "(s|es)?\\M";
+        }
+
+        return "\\m(" + token + "|" + base + ")(s|es)?\\M";
     }
 
     private Pageable withSort(Pageable pageable, String sortBy) {
