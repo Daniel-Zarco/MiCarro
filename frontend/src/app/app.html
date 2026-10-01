@@ -1244,7 +1244,7 @@
         visibleProducts().length === 0
       ) {
 
-        <div class="state-message empty-results">
+        <div class="state-message empty-results novedades-empty">
 
           <span
             class="state-icon"
@@ -1272,11 +1272,23 @@
           <div>
 
             <strong>
-              Todavía no hay productos recientes
+              {{
+                novedadesSection() === 'new'
+                  ? 'Todavía no hay productos nuevos'
+                  : novedadesSection() === 'price-drops'
+                    ? 'Todavía no hay bajadas de precio'
+                    : 'Todavía no hay subidas de precio'
+              }}
             </strong>
 
             <p>
-              Vuelve pronto para descubrir las últimas novedades del catálogo.
+              {{
+                novedadesSection() === 'new'
+                  ? 'Cuando detectemos nuevos productos en el catálogo aparecerán aquí.'
+                  : novedadesSection() === 'price-drops'
+                    ? 'Cuando detectemos productos que hayan bajado de precio aparecerán aquí.'
+                    : 'Cuando detectemos productos que hayan subido de precio aparecerán aquí.'
+              }}
             </p>
 
           </div>

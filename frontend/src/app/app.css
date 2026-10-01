@@ -2024,6 +2024,12 @@ input:focus-visible {
   background: var(--paper);
 }
 
+/* Estado vacío de Novedades: separación respirable respecto a las tabs.
+   Solo aplica cuando NO hay productos, así no altera el espaciado del grid. */
+.state-message.novedades-empty {
+  margin-top: 28px;
+}
+
 .state-message strong {
   display: block;
 
