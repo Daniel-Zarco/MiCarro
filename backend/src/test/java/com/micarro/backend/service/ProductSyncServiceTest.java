@@ -498,4 +498,27 @@ class ProductSyncServiceTest {
         assertThat(allHistory.get(0).get(0).getPrice()).isEqualByComparingTo("12");
         assertThat(allHistory.get(1).get(0).getPrice()).isEqualByComparingTo("9");
     }
+
+    @Test
+    void sync_doesNotTouchProductsOfAnotherSource() {
+
+        Product mercadona = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+        Product other = existing(2L, "B", "Pan", "Panaderia", "img", "1kg", "5", true);
+        other.setSource("OTRO-SUPER");
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "10")));
+        // El sync solo carga la fuente MERCADONA.
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(mercadona));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        productSyncService.sync();
+
+        // Un producto de otra fuente nunca se desactiva ni se modifica.
+        assertThat(other.isActive()).isTrue();
+        assertThat(other.getSource()).isEqualTo("OTRO-SUPER");
+        assertThat(other.getPrice()).isEqualByComparingTo("5");
+    }
 }

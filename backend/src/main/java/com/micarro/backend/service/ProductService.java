@@ -235,23 +235,20 @@ public class ProductService {
 
     /*
      * Nuevos: productos activos detectados en los últimos 30 días por
-     * firstSeenAt, ordenados por firstSeenAt desc.
+     * firstSeenAt, ordenados por firstSeenAt desc, y sin referencia histórica
+     * equivalente anterior (evita falsos "nuevos" por re-creación o cambio de
+     * externalId).
      */
     public PageResponse<ProductPriceChangeResponse> getNewProducts(Pageable pageable) {
 
         Instant since = Instant.now().minus(NEW_WINDOW_DAYS, ChronoUnit.DAYS);
 
-        Pageable sortedPageable = PageRequest.of(
+        Pageable unsorted = PageRequest.of(
                 pageable.getPageNumber(),
-                pageable.getPageSize(),
-                RECENT_PRODUCT_SORT
+                pageable.getPageSize()
         );
 
-        Page<Product> page = productRepository
-                .findByActiveTrueAndFirstSeenAtGreaterThanEqual(
-                        since,
-                        sortedPageable
-                );
+        Page<Product> page = productRepository.findNewProducts(since, unsorted);
 
         return PageResponse.from(
                 page,

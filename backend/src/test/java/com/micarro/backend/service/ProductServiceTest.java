@@ -478,12 +478,11 @@ class ProductServiceTest {
         nuevo.setFirstSeenAt(Instant.now());
 
         Pageable pageable = PageRequest.of(0, 10);
-        Sort recentSort = Sort.by(Sort.Order.desc("firstSeenAt"));
-        Pageable sortedPageable = PageRequest.of(0, 10, recentSort);
+        Pageable unsorted = PageRequest.of(0, 10);
 
-        when(productRepository.findByActiveTrueAndFirstSeenAtGreaterThanEqual(
-                any(), org.mockito.ArgumentMatchers.eq(sortedPageable)))
-                .thenReturn(new PageImpl<>(List.of(nuevo), sortedPageable, 1));
+        when(productRepository.findNewProducts(
+                any(), org.mockito.ArgumentMatchers.eq(unsorted)))
+                .thenReturn(new PageImpl<>(List.of(nuevo), unsorted, 1));
 
         PageResponse<ProductPriceChangeResponse> response =
                 productService.getNewProducts(pageable);

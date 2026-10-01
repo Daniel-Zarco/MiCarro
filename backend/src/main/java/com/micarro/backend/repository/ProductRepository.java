@@ -231,4 +231,59 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("cutoff") Instant cutoff,
             Pageable pageable
     );
+
+    /*
+     * Productos realmente nuevos: activos con firstSeenAt reciente que NO
+     * tengan una referencia histórica equivalente anterior (activa o inactiva,
+     * cualquier source). La identidad es estricta (name + format + category +
+     * brand normalizados); si la referencia anterior tiene firstSeenAt NULL se
+     * usa su id inferior como evidencia histórica. Solo decide si el producto
+     * aparece en "Nuevos"; no modifica ni fusiona filas.
+     */
+    @Query(
+            value = """
+                    select p.*
+                    from products p
+                    where p.active = true
+                      and p.first_seen_at >= :since
+                      and not exists (
+                        select 1
+                        from products prior
+                        where prior.id <> p.id
+                          and lower(prior.name) = lower(p.name)
+                          and coalesce(lower(prior.format), '') = coalesce(lower(p.format), '')
+                          and coalesce(lower(prior.category), '') = coalesce(lower(p.category), '')
+                          and coalesce(lower(prior.brand), '') = coalesce(lower(p.brand), '')
+                          and (
+                            prior.first_seen_at < p.first_seen_at
+                            or (prior.first_seen_at is null and prior.id < p.id)
+                          )
+                      )
+                    order by p.first_seen_at desc
+                    """,
+            countQuery = """
+                    select count(*)
+                    from products p
+                    where p.active = true
+                      and p.first_seen_at >= :since
+                      and not exists (
+                        select 1
+                        from products prior
+                        where prior.id <> p.id
+                          and lower(prior.name) = lower(p.name)
+                          and coalesce(lower(prior.format), '') = coalesce(lower(p.format), '')
+                          and coalesce(lower(prior.category), '') = coalesce(lower(p.category), '')
+                          and coalesce(lower(prior.brand), '') = coalesce(lower(p.brand), '')
+                          and (
+                            prior.first_seen_at < p.first_seen_at
+                            or (prior.first_seen_at is null and prior.id < p.id)
+                          )
+                      )
+                    """,
+            nativeQuery = true
+    )
+    Page<Product> findNewProducts(
+            @Param("since") Instant since,
+            Pageable pageable
+    );
 }

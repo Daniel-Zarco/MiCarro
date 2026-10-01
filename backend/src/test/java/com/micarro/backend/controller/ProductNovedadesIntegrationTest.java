@@ -1,5 +1,6 @@
 package com.micarro.backend.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -147,5 +148,89 @@ class ProductNovedadesIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(2))
                 .andExpect(jsonPath("$.totalPages").value(2))
                 .andExpect(jsonPath("$.first").value(true));
+    }
+
+    @Test
+    void newProducts_excludesRecentReferenceWhenHistoricalEquivalentExists() throws Exception {
+
+        // Referencia histórica anterior (firstSeenAt NULL, id menor, otro externalId).
+        Product historical = product("Refresco Fanta naranja", "1.85", null);
+
+        // Referencia reciente con la misma identidad estricta.
+        Product recent = product("Refresco Fanta naranja", "1.55", Instant.now());
+
+        mockMvc.perform(get("/api/products/new"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0))
+                .andExpect(jsonPath("$.totalElements").value(0));
+
+        // La fila histórica no se modifica.
+        assertThat(historical.isActive()).isTrue();
+    }
+
+    @Test
+    void newProducts_excludesRecentReferenceWhenInactivePriorExists() throws Exception {
+
+        Product historical = product("Refresco Fanta naranja", "1.85", null);
+        historical.setActive(false);
+        productRepository.save(historical);
+
+        product("Refresco Fanta naranja", "1.55", Instant.now());
+
+        mockMvc.perform(get("/api/products/new"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    void newProducts_keepsGenuinelyNewProductWithoutHistoricalReference() throws Exception {
+
+        Product recent = product("Pera Limonera", "2.10", Instant.now());
+
+        mockMvc.perform(get("/api/products/new"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(recent.getId()));
+    }
+
+    @Test
+    void newProducts_doesNotExcludeSimilarProductWithDifferentCategory() throws Exception {
+
+        Product historical = product("Salsa Sweet Relish", "2.00", null);
+        historical.setCategory("Aceites");
+        historical.setFormat("Tarro");
+        productRepository.save(historical);
+
+        Product recent = product("Salsa Sweet Relish", "2.00", Instant.now());
+        recent.setCategory("Conservas");
+        recent.setFormat("Tarro");
+        productRepository.save(recent);
+
+        // Identidad estricta: la categoría difiere, así que NO se excluye.
+        mockMvc.perform(get("/api/products/new"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(recent.getId()));
+
+        // Ninguna fila se fusiona ni modifica.
+        assertThat(historical.getCategory()).isEqualTo("Aceites");
+        assertThat(recent.getCategory()).isEqualTo("Conservas");
+    }
+
+    @Test
+    void newProducts_exclusionDoesNotBreakPriceHistory() throws Exception {
+
+        Product historical = product("Refresco Fanta naranja", "1.85", null);
+        history(historical, "1.85", Instant.now());
+
+        Product recent = product("Refresco Fanta naranja", "1.55", Instant.now());
+        history(recent, "1.55", Instant.now());
+
+        mockMvc.perform(get("/api/products/new"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+
+        // El historial de precios sigue asociado a ambas filas (no se borra).
+        assertThat(priceHistoryRepository.findAll()).hasSize(2);
     }
 }
