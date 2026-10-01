@@ -7,6 +7,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -16,6 +20,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.entity.ProductPriceHistory;
 import com.micarro.backend.repository.ProductPriceHistoryRepository;
@@ -34,6 +40,9 @@ class ProductNovedadesIntegrationTest {
 
     @Autowired
     private ProductPriceHistoryRepository priceHistoryRepository;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private Product product(String name, String price, Instant firstSeenAt) {
 
@@ -232,5 +241,49 @@ class ProductNovedadesIntegrationTest {
 
         // El historial de precios sigue asociado a ambas filas (no se borra).
         assertThat(priceHistoryRepository.findAll()).hasSize(2);
+    }
+
+    @Test
+    void newProducts_paginationIsDeterministicWithTies() throws Exception {
+
+        int size = 10;
+        int count = size + 5; // más productos que el tamaño de página con el MISMO firstSeenAt
+        Instant same = Instant.now();
+
+        List<Long> expected = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Product product = product("Producto determinista " + i, "1.00", same);
+            expected.add(product.getId());
+        }
+        // Todos comparten firstSeenAt -> el orden es firstSeenAt DESC (igual), id ASC.
+        expected.sort(Comparator.naturalOrder());
+
+        List<Long> seen = new ArrayList<>();
+        int page = 0;
+        boolean last = false;
+
+        while (!last) {
+            String body = mockMvc.perform(get("/api/products/new")
+                            .param("size", String.valueOf(size))
+                            .param("page", String.valueOf(page)))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            JsonNode root = objectMapper.readTree(body);
+            for (JsonNode item : root.path("content")) {
+                seen.add(item.get("id").asLong());
+            }
+            last = root.path("last").asBoolean();
+            page++;
+        }
+
+        // Ningún id se repite entre páginas y no falta ningún producto.
+        assertThat(seen).hasSize(count);
+        assertThat(new HashSet<>(seen)).hasSize(count);
+
+        // Orden determinista global: mismo firstSeenAt -> id ASC.
+        assertThat(seen).isEqualTo(expected);
     }
 }

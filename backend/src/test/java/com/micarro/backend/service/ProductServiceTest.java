@@ -392,10 +392,13 @@ class ProductServiceTest {
     }
 
     @Test
-    void getRecentProducts_filtersByLastSixMonthsAndSortsByFirstSeenAtDesc() {
+    void getRecentProducts_filtersByLastSixMonthsAndSortsByFirstSeenAtDescThenIdAsc() {
 
         Pageable pageable = PageRequest.of(0, 10);
-        Sort recentSort = Sort.by(Sort.Order.desc("firstSeenAt"));
+        Sort recentSort = Sort.by(
+                Sort.Order.desc("firstSeenAt"),
+                Sort.Order.asc("id")
+        );
         Pageable sortedPageable = PageRequest.of(0, 10, recentSort);
 
         Instant sixMonthsAgo = Instant.now().minus(6 * 30L, ChronoUnit.DAYS);

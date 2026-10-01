@@ -259,7 +259,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                             or (prior.first_seen_at is null and prior.id < p.id)
                           )
                       )
-                    order by p.first_seen_at desc
+                    order by p.first_seen_at desc, p.id asc
                     """,
             countQuery = """
                     select count(*)

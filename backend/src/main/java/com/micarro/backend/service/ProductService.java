@@ -203,7 +203,10 @@ public class ProductService {
     }
 
     private static final Sort RECENT_PRODUCT_SORT =
-            Sort.by(Sort.Order.desc("firstSeenAt"));
+            Sort.by(
+                    Sort.Order.desc("firstSeenAt"),
+                    Sort.Order.asc("id")
+            );
 
     public PageResponse<ProductResponse> getRecentProducts(Pageable pageable) {
 
