@@ -35,6 +35,9 @@ public class Product {
     @Column(name = "main_category")
     private String mainCategory;
 
+    @Column(name = "visual_group")
+    private String visualGroup;
+
     @Column(unique = true)
     private String externalId;
 
@@ -99,6 +102,14 @@ public class Product {
 
     public void setMainCategory(String mainCategory) {
         this.mainCategory = mainCategory;
+    }
+
+    public String getVisualGroup() {
+        return visualGroup;
+    }
+
+    public void setVisualGroup(String visualGroup) {
+        this.visualGroup = visualGroup;
     }
 
     public String getExternalId() {

@@ -44,6 +44,9 @@ class ProductSyncServiceTest {
     private MainCategoryMapper mainCategoryMapper;
 
     @Mock
+    private VisualGroupMapper visualGroupMapper;
+
+    @Mock
     private ProductPriceHistoryRepository priceHistoryRepository;
 
     private ProductSyncService productSyncService;
@@ -54,6 +57,7 @@ class ProductSyncServiceTest {
                 productProvider,
                 productRepository,
                 mainCategoryMapper,
+                visualGroupMapper,
                 priceHistoryRepository);
     }
 
@@ -520,5 +524,29 @@ class ProductSyncServiceTest {
         assertThat(other.isActive()).isTrue();
         assertThat(other.getSource()).isEqualTo("OTRO-SUPER");
         assertThat(other.getPrice()).isEqualByComparingTo("5");
+    }
+
+    @Test
+    void sync_setsVisualGroupEvenWithoutOtherChanges() {
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+        stored.setMainCategory("Carne"); // ya normalizado en un sync anterior
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "10")));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+        when(mainCategoryMapper.map("Carnes")).thenReturn("Carne");
+        when(visualGroupMapper.visualGroup("Carnes")).thenReturn("Aves");
+
+        SyncResult result = productSyncService.sync();
+
+        // El grupo visual se materializa aunque ningún otro campo sincronizable
+        // haya cambiado (nombre, categoría, imagen, formato y precio iguales).
+        assertThat(stored.getVisualGroup()).isEqualTo("Aves");
+        assertThat(result.getUpdated()).isEqualTo(1);
+        assertThat(result.getUnchanged()).isZero();
     }
 }

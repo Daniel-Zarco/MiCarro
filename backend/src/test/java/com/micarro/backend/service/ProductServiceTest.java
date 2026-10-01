@@ -126,17 +126,32 @@ class ProductServiceTest {
     }
 
     @Test
-    void getProducts_usesSearchWhenProvided() {
+    void getProducts_usesRelevanceSearchWhenProvided() {
 
         Pageable pageable = PageRequest.of(0, 5);
-        Pageable sortedPageable = sortedPageable(pageable);
+        Pageable unsorted = PageRequest.of(0, 5);
 
-        when(productRepository.findByNameContainingIgnoreCase(eq("pollo"), eq(sortedPageable)))
-                .thenReturn(new PageImpl<>(List.of(), sortedPageable, 0));
+        when(productRepository.searchWithRelevance(
+                eq("%pollo%"), eq("pollo"), eq(unsorted)))
+                .thenReturn(new PageImpl<>(List.of(), unsorted, 0));
 
         productService.getProducts("  pollo  ", null, null, "catalog", pageable);
 
-        verify(productRepository).findByNameContainingIgnoreCase("pollo", sortedPageable);
+        verify(productRepository).searchWithRelevance("%pollo%", "pollo", unsorted);
+    }
+
+    @Test
+    void getProducts_usesPriceSortForSearchWhenManualSortSelected() {
+
+        Pageable pageable = PageRequest.of(0, 5);
+        Pageable unsorted = PageRequest.of(0, 5);
+
+        when(productRepository.searchByPriceAsc(eq("%pollo%"), eq(unsorted)))
+                .thenReturn(new PageImpl<>(List.of(), unsorted, 0));
+
+        productService.getProducts("pollo", null, null, "price-asc", pageable);
+
+        verify(productRepository).searchByPriceAsc("%pollo%", unsorted);
     }
 
     @Test

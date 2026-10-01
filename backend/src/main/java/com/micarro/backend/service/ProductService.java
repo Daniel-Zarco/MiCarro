@@ -5,6 +5,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -44,6 +45,9 @@ public class ProductService {
     public ProductResponse createProduct(Product product) {
         product.setMainCategory(
                 mainCategoryMapper.map(product.getCategory())
+        );
+        product.setVisualGroup(
+                visualGroupMapper.visualGroup(product.getCategory())
         );
         return toResponse(productRepository.save(product));
     }
@@ -159,10 +163,7 @@ public class ProductService {
                     sortedPageable
             );
         } else if (hasSearch) {
-            page = productRepository.findByNameContainingIgnoreCase(
-                    search.trim(),
-                    sortedPageable
-            );
+            page = searchProducts(search.trim(), sortBy, pageable);
         } else {
             page = productRepository.findAll(sortedPageable);
         }
@@ -186,6 +187,57 @@ public class ProductService {
         }
 
         return visualGroupMapper.categoriesOf(mainCategory, group);
+    }
+
+    /*
+     * Búsqueda con relevancia: con el orden por defecto (catalog) se aplica el
+     * ranking (mainCategory exacta > visualGroup exacta > category exacta >
+     * coincidencia parcial de mainCategory/visualGroup/category > nombre).
+     * Con sort manual (Precio/A-Z/Z-A) manda por completo el sort seleccionado.
+     * Siempre termina en id ASC (paginación determinista).
+     */
+    private Page<Product> searchProducts(
+            String search,
+            String sortBy,
+            Pageable pageable) {
+
+        String normalized = normalizeSearch(search);
+        String like = "%" + normalized + "%";
+
+        Pageable unsorted = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
+
+        return switch (sortBy == null ? "catalog" : sortBy) {
+            case "price-asc" -> productRepository.searchByPriceAsc(like, unsorted);
+            case "price-desc" -> productRepository.searchByPriceDesc(like, unsorted);
+            case "name" -> productRepository.searchByNameAsc(like, unsorted);
+            case "name-desc" -> productRepository.searchByNameDesc(like, unsorted);
+            default -> productRepository.searchWithRelevance(
+                    like,
+                    normalized,
+                    unsorted
+            );
+        };
+    }
+
+    /*
+     * Normalización de la búsqueda: minúsculas y sin acentos españoles, igual
+     * que la función translate usada en las consultas nativas.
+     */
+    private static String normalizeSearch(String value) {
+
+        String s = value == null ? "" : value;
+        s = s.toLowerCase(Locale.ROOT).trim();
+
+        return s.replace('á', 'a')
+                .replace('é', 'e')
+                .replace('í', 'i')
+                .replace('ó', 'o')
+                .replace('ú', 'u')
+                .replace('ü', 'u')
+                .replace('ñ', 'n');
     }
 
     private Pageable withSort(Pageable pageable, String sortBy) {

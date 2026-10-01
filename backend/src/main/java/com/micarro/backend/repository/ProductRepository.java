@@ -286,4 +286,95 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("since") Instant since,
             Pageable pageable
     );
+
+    /*
+     * Búsqueda del catálogo expandida a name, main_category, visual_group y
+     * category (case/accent-insensitive). VisualGroupMapper sigue siendo la
+     * única fuente de verdad del grupo visual; la columna es solo el resultado
+     * materializado que rellena el sync.
+     */
+    String SEARCH_WHERE = """
+            p.active = true
+            and (
+              translate(lower(p.name), 'áéíóúüñ', 'aeiouun') like :like
+              or translate(lower(p.main_category), 'áéíóúüñ', 'aeiouun') like :like
+              or translate(lower(p.visual_group), 'áéíóúüñ', 'aeiouun') like :like
+              or translate(lower(p.category), 'áéíóúüñ', 'aeiouun') like :like
+            )
+            """;
+
+    /*
+     * Búsqueda con relevancia (orden por defecto): primero coincidencia exacta
+     * con mainCategory, luego visualGroup, luego category, después cualquier
+     * coincidencia parcial de mainCategory/visualGroup/category y finalmente el
+     * nombre. Termina en catalogOrder ASC, id ASC (paginación determinista).
+     */
+    @Query(
+            value = "select p.* from products p where " + SEARCH_WHERE + """
+                    order by
+                      case
+                        when translate(lower(p.main_category), 'áéíóúüñ', 'aeiouun') = :exact then 0
+                        when translate(lower(p.visual_group), 'áéíóúüñ', 'aeiouun') = :exact then 1
+                        when translate(lower(p.category), 'áéíóúüñ', 'aeiouun') = :exact then 2
+                        when translate(lower(p.main_category), 'áéíóúüñ', 'aeiouun') like :like
+                          or translate(lower(p.visual_group), 'áéíóúüñ', 'aeiouun') like :like
+                          or translate(lower(p.category), 'áéíóúüñ', 'aeiouun') like :like then 3
+                        when translate(lower(p.name), 'áéíóúüñ', 'aeiouun') like :like then 4
+                        else 5
+                      end,
+                      p.catalog_order asc,
+                      p.id asc
+                    """,
+            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            nativeQuery = true
+    )
+    Page<Product> searchWithRelevance(
+            @Param("like") String like,
+            @Param("exact") String exact,
+            Pageable pageable
+    );
+
+    @Query(
+            value = "select p.* from products p where " + SEARCH_WHERE
+                    + " order by p.price asc nulls last, p.catalog_order asc, p.id asc",
+            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            nativeQuery = true
+    )
+    Page<Product> searchByPriceAsc(
+            @Param("like") String like,
+            Pageable pageable
+    );
+
+    @Query(
+            value = "select p.* from products p where " + SEARCH_WHERE
+                    + " order by p.price desc nulls last, p.catalog_order asc, p.id asc",
+            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            nativeQuery = true
+    )
+    Page<Product> searchByPriceDesc(
+            @Param("like") String like,
+            Pageable pageable
+    );
+
+    @Query(
+            value = "select p.* from products p where " + SEARCH_WHERE
+                    + " order by lower(p.name) asc, p.catalog_order asc, p.id asc",
+            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            nativeQuery = true
+    )
+    Page<Product> searchByNameAsc(
+            @Param("like") String like,
+            Pageable pageable
+    );
+
+    @Query(
+            value = "select p.* from products p where " + SEARCH_WHERE
+                    + " order by lower(p.name) desc, p.catalog_order asc, p.id asc",
+            countQuery = "select count(*) from products p where " + SEARCH_WHERE,
+            nativeQuery = true
+    )
+    Page<Product> searchByNameDesc(
+            @Param("like") String like,
+            Pageable pageable
+    );
 }

@@ -27,17 +27,20 @@ public class ProductSyncService {
     private final ProductProvider productProvider;
     private final ProductRepository productRepository;
     private final MainCategoryMapper mainCategoryMapper;
+    private final VisualGroupMapper visualGroupMapper;
     private final ProductPriceHistoryRepository priceHistoryRepository;
 
     public ProductSyncService(
             ProductProvider productProvider,
             ProductRepository productRepository,
             MainCategoryMapper mainCategoryMapper,
+            VisualGroupMapper visualGroupMapper,
             ProductPriceHistoryRepository priceHistoryRepository) {
 
         this.productProvider = productProvider;
         this.productRepository = productRepository;
         this.mainCategoryMapper = mainCategoryMapper;
+        this.visualGroupMapper = visualGroupMapper;
         this.priceHistoryRepository = priceHistoryRepository;
     }
 
@@ -150,6 +153,14 @@ public class ProductSyncService {
                         changed = true;
                     }
 
+                    String visualGroup =
+                            visualGroupMapper.visualGroup(stored.getCategory());
+
+                    if (!Objects.equals(stored.getVisualGroup(), visualGroup)) {
+                        stored.setVisualGroup(visualGroup);
+                        changed = true;
+                    }
+
                     stored.setSource(source);
                     stored.setActive(true);
                     stored.setLastSyncedAt(now);
@@ -255,6 +266,7 @@ public class ProductSyncService {
         product.setBrand(incoming.getBrand());
         product.setCategory(incoming.getCategory());
         product.setMainCategory(mainCategoryMapper.map(incoming.getCategory()));
+        product.setVisualGroup(visualGroupMapper.visualGroup(incoming.getCategory()));
         product.setImageUrl(incoming.getImageUrl());
         product.setFormat(incoming.getFormat());
         product.setPrice(incoming.getPrice());
