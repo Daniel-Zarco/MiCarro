@@ -1,0 +1,151 @@
+package com.micarro.backend.controller;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.micarro.backend.entity.Product;
+import com.micarro.backend.entity.ProductPriceHistory;
+import com.micarro.backend.repository.ProductPriceHistoryRepository;
+import com.micarro.backend.repository.ProductRepository;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@Transactional
+class ProductNovedadesIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ProductRepository productRepository;
+
+    @Autowired
+    private ProductPriceHistoryRepository priceHistoryRepository;
+
+    private Product product(String name, String price, Instant firstSeenAt) {
+
+        Product product = new Product();
+        product.setExternalId("novedades-" + UUID.randomUUID());
+        product.setName(name);
+        product.setSource("MERCADONA");
+        product.setActive(true);
+        product.setPrice(price == null ? null : new BigDecimal(price));
+        product.setFirstSeenAt(firstSeenAt);
+
+        return productRepository.save(product);
+    }
+
+    private void history(Product product, String price, Instant recordedAt) {
+
+        ProductPriceHistory history = new ProductPriceHistory();
+        history.setProductId(product.getId());
+        history.setPrice(new BigDecimal(price));
+        history.setRecordedAt(recordedAt);
+
+        priceHistoryRepository.save(history);
+    }
+
+    @Test
+    void new_returnsProductsSeenInLast30Days() throws Exception {
+
+        Product recent = product("Reciente", "5", Instant.now());
+        product("Antiguo", "5", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+
+        mockMvc.perform(get("/api/products/new"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(recent.getId()))
+                .andExpect(jsonPath("$.content[0].previousPrice").doesNotExist());
+    }
+
+    @Test
+    void priceDrops_returnsDropWithDifferenceAndPercent() throws Exception {
+
+        Product drop = product("En oferta", "7", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+        history(drop, "10", Instant.now().minus(40, java.time.temporal.ChronoUnit.DAYS));
+
+        Product stable = product("Estable", "9", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+        history(stable, "9", Instant.now().minus(40, java.time.temporal.ChronoUnit.DAYS));
+
+        mockMvc.perform(get("/api/products/price-drops"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(drop.getId()))
+                .andExpect(jsonPath("$.content[0].previousPrice").value(10.0))
+                .andExpect(jsonPath("$.content[0].currentPrice").value(7.0))
+                .andExpect(jsonPath("$.content[0].difference").value(-3.0))
+                .andExpect(jsonPath("$.content[0].differencePercent").value(-30.00));
+    }
+
+    @Test
+    void priceRaises_returnsRiseWithDifferenceAndPercent() throws Exception {
+
+        Product rise = product("Más caro", "12", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+        history(rise, "10", Instant.now().minus(40, java.time.temporal.ChronoUnit.DAYS));
+
+        mockMvc.perform(get("/api/products/price-raises"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(rise.getId()))
+                .andExpect(jsonPath("$.content[0].differencePercent").value(20.00));
+    }
+
+    @Test
+    void priceDrops_excludesProductsWithoutEnoughHistory() throws Exception {
+
+        // Sin fila de historial <= cutoff (30 días): no debe aparecer ni como
+        // bajada ni como subida.
+        Product noHistory = product("Sin histórico", "8", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+        history(noHistory, "8", Instant.now());
+
+        mockMvc.perform(get("/api/products/price-drops"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+
+        mockMvc.perform(get("/api/products/price-raises"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(0));
+    }
+
+    @Test
+    void priceDrops_ordersByBiggestPercentFirst() throws Exception {
+
+        Product bigDrop = product("Gran bajada", "5", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+        history(bigDrop, "10", Instant.now().minus(40, java.time.temporal.ChronoUnit.DAYS));
+
+        Product smallDrop = product("Pequeña bajada", "9", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+        history(smallDrop, "10", Instant.now().minus(40, java.time.temporal.ChronoUnit.DAYS));
+
+        mockMvc.perform(get("/api/products/price-drops"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(bigDrop.getId()))
+                .andExpect(jsonPath("$.content[1].id").value(smallDrop.getId()));
+    }
+
+    @Test
+    void priceDrops_paginates() throws Exception {
+
+        for (int i = 0; i < 3; i++) {
+            Product drop = product("Oferta " + i, "8", Instant.now().minus(60, java.time.temporal.ChronoUnit.DAYS));
+            history(drop, "10", Instant.now().minus(40, java.time.temporal.ChronoUnit.DAYS));
+        }
+
+        mockMvc.perform(get("/api/products/price-drops").param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.first").value(true));
+    }
+}

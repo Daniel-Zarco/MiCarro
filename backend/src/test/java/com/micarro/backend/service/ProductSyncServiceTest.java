@@ -1,6 +1,7 @@
 package com.micarro.backend.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -17,12 +18,15 @@ import java.util.Objects;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.micarro.backend.dto.SyncResult;
 import com.micarro.backend.entity.Product;
+import com.micarro.backend.entity.ProductPriceHistory;
 import com.micarro.backend.provider.ProductProvider;
+import com.micarro.backend.repository.ProductPriceHistoryRepository;
 import com.micarro.backend.repository.ProductRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,6 +43,9 @@ class ProductSyncServiceTest {
     @Mock
     private MainCategoryMapper mainCategoryMapper;
 
+    @Mock
+    private ProductPriceHistoryRepository priceHistoryRepository;
+
     private ProductSyncService productSyncService;
 
     @BeforeEach
@@ -46,7 +53,8 @@ class ProductSyncServiceTest {
         productSyncService = new ProductSyncService(
                 productProvider,
                 productRepository,
-                mainCategoryMapper);
+                mainCategoryMapper,
+                priceHistoryRepository);
     }
 
     private Product incoming(
@@ -390,5 +398,104 @@ class ProductSyncServiceTest {
         assertThat(result.getReceived()).isEqualTo(2);
         assertThat(result.getCreated()).isEqualTo(1);
         assertThat(result.getErrors()).isEqualTo(1);
+    }
+
+    @Test
+    void sync_createsInitialPriceHistoryForNewProducts() {
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "10")));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of());
+        when(productRepository.saveAll(anyList()))
+                .thenAnswer(invocation -> {
+                    List<Product> batch = invocation.getArgument(0);
+                    for (int i = 0; i < batch.size(); i++) {
+                        batch.get(i).setId(i + 1L);
+                    }
+                    return batch;
+                });
+
+        productSyncService.sync();
+
+        ArgumentCaptor<List<ProductPriceHistory>> captor =
+                ArgumentCaptor.forClass(List.class);
+        verify(priceHistoryRepository).saveAll(captor.capture());
+
+        List<ProductPriceHistory> history = captor.getValue();
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).getProductId()).isEqualTo(1L);
+        assertThat(history.get(0).getPrice()).isEqualByComparingTo("10");
+        assertThat(history.get(0).getRecordedAt()).isNotNull();
+    }
+
+    @Test
+    void sync_withoutChange_doesNotRecordPriceHistory() {
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "10")));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        productSyncService.sync();
+
+        verify(priceHistoryRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void sync_priceChange_recordsExactlyOneRow() {
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "12")));
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        productSyncService.sync();
+
+        ArgumentCaptor<List<ProductPriceHistory>> captor =
+                ArgumentCaptor.forClass(List.class);
+        verify(priceHistoryRepository).saveAll(captor.capture());
+
+        List<ProductPriceHistory> history = captor.getValue();
+        assertThat(history).hasSize(1);
+        assertThat(history.get(0).getProductId()).isEqualTo(1L);
+        assertThat(history.get(0).getPrice()).isEqualByComparingTo("12");
+    }
+
+    @Test
+    void sync_multiplePriceChanges_recordsOneRowPerChange() {
+
+        Product stored = existing(1L, "A", "Pollo", "Carnes", "img", "1kg", "10", true);
+
+        when(productProvider.getSource()).thenReturn(SOURCE);
+        when(productRepository.findBySourceIncludingInactive(SOURCE))
+                .thenReturn(List.of(stored));
+        when(productRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "12")));
+        productSyncService.sync(); // 10 -> 12 (fila 1)
+
+        when(productProvider.getProducts())
+                .thenReturn(List.of(incoming("A", "Pollo", "Carnes", "img", "1kg", "9")));
+        productSyncService.sync(); // 12 -> 9 (fila 2)
+
+        ArgumentCaptor<List<ProductPriceHistory>> captor =
+                ArgumentCaptor.forClass(List.class);
+        verify(priceHistoryRepository, times(2)).saveAll(captor.capture());
+
+        List<List<ProductPriceHistory>> allHistory = captor.getAllValues();
+        assertThat(allHistory).hasSize(2);
+        assertThat(allHistory.get(0).get(0).getPrice()).isEqualByComparingTo("12");
+        assertThat(allHistory.get(1).get(0).getPrice()).isEqualByComparingTo("9");
     }
 }

@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { Category } from '../models/category';
 import { Group } from '../models/group';
+import { NovedadesSection, ProductPriceChange } from '../models/product-price-change';
 import { Product } from '../models/product';
 import { PageResponse } from '../models/page-response';
 import { environment } from '../../environments/environment';
@@ -72,6 +73,22 @@ export class ProductService {
 
     return this.http.get<PageResponse<Product>>(
       `${this.apiUrl}/recent`,
+      { params }
+    );
+  }
+
+  getNovedades(
+    section: NovedadesSection,
+    page = 0,
+    size = 24
+  ): Observable<PageResponse<ProductPriceChange>> {
+
+    const params = new HttpParams()
+      .set('page', page)
+      .set('size', size);
+
+    return this.http.get<PageResponse<ProductPriceChange>>(
+      `${this.apiUrl}/${section}`,
       { params }
     );
   }

@@ -15,6 +15,7 @@ import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 
 import { Category } from './models/category';
 import { Group } from './models/group';
+import { NovedadesSection, ProductPriceChange } from './models/product-price-change';
 import { Product } from './models/product';
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
@@ -121,7 +122,17 @@ export class App implements OnInit, OnDestroy {
   // =========================
 
   protected readonly recentView = signal(false);
-  protected readonly recentProducts = signal<Product[]>([]);
+
+  protected readonly novedadesSection = signal<NovedadesSection>('new');
+
+  protected readonly novedadesProducts = signal<ProductPriceChange[]>([]);
+
+  protected readonly novedadesSections:
+    { value: NovedadesSection; label: string }[] = [
+    { value: 'new', label: 'Nuevos' },
+    { value: 'price-drops', label: 'Bajadas de precio' },
+    { value: 'price-raises', label: 'Subidas de precio' },
+  ];
 
   protected readonly favoriteProducts = computed(() => {
 
@@ -144,7 +155,7 @@ export class App implements OnInit, OnDestroy {
       return this.favoriteProducts();
     }
     if (this.recentView()) {
-      return this.recentProducts();
+      return this.novedadesProducts();
     }
     if (this.selectedGroup()) {
       return this.groupProducts();
@@ -449,18 +460,26 @@ export class App implements OnInit, OnDestroy {
   }
 
 
-  protected loadRecentProducts(page = 0): void {
+  protected loadNovedades(section: NovedadesSection, page = 0): void {
+
+    this.novedadesSection.set(section);
 
     this.loading.set(true);
     this.error.set(null);
 
     this.productService
-      .getRecentProducts(page, 24)
+      .getNovedades(section, page, 24)
       .subscribe({
 
         next: (response) => {
 
-          this.recentProducts.set(response.content);
+          // La card usa product.price; aquí se rellena con el precio actual.
+          this.novedadesProducts.set(
+            response.content.map(item => ({
+              ...item,
+              price: item.currentPrice
+            }))
+          );
 
           this.currentPage.set(response.page);
           this.totalPages.set(response.totalPages);
@@ -488,6 +507,23 @@ export class App implements OnInit, OnDestroy {
         }
 
       });
+  }
+
+  protected selectNovedadesSection(section: NovedadesSection): void {
+
+    if (this.novedadesSection() === section) {
+      return;
+    }
+
+    this.loadNovedades(section, 0);
+  }
+
+  protected abs(value: number | null): number {
+    return value == null ? 0 : Math.abs(value);
+  }
+
+  protected money(value: number | null | undefined): string {
+    return value == null ? '0.00' : value.toFixed(2);
   }
 
 
@@ -675,7 +711,7 @@ export class App implements OnInit, OnDestroy {
       const page = this.currentPage() - 1;
 
       if (this.recentView()) {
-        this.loadRecentProducts(page);
+        this.loadNovedades(this.novedadesSection(), page);
       } else {
         this.loadProducts(page);
       }
@@ -692,7 +728,7 @@ export class App implements OnInit, OnDestroy {
       const page = this.currentPage() + 1;
 
       if (this.recentView()) {
-        this.loadRecentProducts(page);
+        this.loadNovedades(this.novedadesSection(), page);
       } else {
         this.loadProducts(page);
       }
@@ -742,10 +778,11 @@ export class App implements OnInit, OnDestroy {
     if (activating) {
       this.selectedCategory.set(null);
       this.selectedGroup.set(null);
+      this.novedadesSection.set('new');
     }
 
     if (activating) {
-      this.loadRecentProducts(0);
+      this.loadNovedades('new', 0);
     } else {
       this.loadProducts(0);
     }
@@ -993,7 +1030,7 @@ export class App implements OnInit, OnDestroy {
     const targetPage = page - 1;
 
     if (this.recentView()) {
-      this.loadRecentProducts(targetPage);
+      this.loadNovedades(this.novedadesSection(), targetPage);
     } else {
       this.loadProducts(targetPage);
     }

@@ -1004,6 +1004,36 @@
 
 
       <!-- =========================
+           NOVEDADES: selector de sección
+           ========================= -->
+      @if (recentView()) {
+
+        <div
+          class="novedades-tabs"
+          role="tablist"
+          aria-label="Secciones de novedades"
+        >
+
+          @for (section of novedadesSections; track section.value) {
+
+            <button
+              type="button"
+              role="tab"
+              [class.is-active]="novedadesSection() === section.value"
+              [attr.aria-selected]="novedadesSection() === section.value"
+              (click)="selectNovedadesSection(section.value)"
+            >
+              {{ section.label }}
+            </button>
+
+          }
+
+        </div>
+
+      }
+
+
+      <!-- =========================
            LOADING
            ========================= -->
       @if (!favoritesView() && loading()) {
@@ -1346,6 +1376,27 @@
             <p class="format">
               {{ product.format || 'Unidad' }}
             </p>
+
+            @if (product.previousPrice != null && product.differencePercent != null) {
+
+              <div class="price-change-row">
+
+                <span
+                  class="price-change"
+                  [class.is-drop]="(product.difference ?? 0) < 0"
+                >
+                  {{ (product.difference ?? 0) < 0 ? '↓' : '↑' }}
+                  {{ abs(product.differencePercent) }}%
+                </span>
+
+                <s class="price-previous">
+                  {{ money(product.previousPrice) }} €
+                </s>
+
+              </div>
+
+            }
+
             <div class="product-footer">
               <strong class="price">
                 {{ product.price ?? 0 }} €

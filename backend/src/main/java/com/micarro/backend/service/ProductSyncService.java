@@ -12,10 +12,13 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.micarro.backend.dto.SyncResult;
 import com.micarro.backend.entity.Product;
+import com.micarro.backend.entity.ProductPriceHistory;
 import com.micarro.backend.provider.ProductProvider;
+import com.micarro.backend.repository.ProductPriceHistoryRepository;
 import com.micarro.backend.repository.ProductRepository;
 
 @Service
@@ -24,20 +27,25 @@ public class ProductSyncService {
     private final ProductProvider productProvider;
     private final ProductRepository productRepository;
     private final MainCategoryMapper mainCategoryMapper;
+    private final ProductPriceHistoryRepository priceHistoryRepository;
 
     public ProductSyncService(
             ProductProvider productProvider,
             ProductRepository productRepository,
-            MainCategoryMapper mainCategoryMapper) {
+            MainCategoryMapper mainCategoryMapper,
+            ProductPriceHistoryRepository priceHistoryRepository) {
 
         this.productProvider = productProvider;
         this.productRepository = productRepository;
         this.mainCategoryMapper = mainCategoryMapper;
+        this.priceHistoryRepository = priceHistoryRepository;
     }
 
     /**
-     * Sincroniza el catálogo del proveedor configurado.
+     * Sincroniza el catálogo del proveedor configurado. Atómica: los cambios de
+     * producto y su historial de precios se confirman juntos.
      */
+    @Transactional
     public SyncResult sync() {
         return sync(productProvider.getSource());
     }
@@ -52,6 +60,7 @@ public class ProductSyncService {
      * </ol>
      * Es idempotente: repetir sin cambios deja created/updated/deactivated a 0.
      */
+    @Transactional
     public SyncResult sync(String source) {
 
         List<Product> incoming = productProvider.getProducts();
@@ -97,6 +106,8 @@ public class ProductSyncService {
         int deactivated = 0;
 
         List<Product> toSave = new ArrayList<>();
+        Set<Product> createdProducts = new HashSet<>();
+        Set<Product> priceChangedProducts = new HashSet<>();
         Set<String> seenExternalIds = new HashSet<>();
 
         int catalogOrder = 0;
@@ -114,10 +125,15 @@ public class ProductSyncService {
 
                 if (stored == null) {
 
-                    toSave.add(createFrom(incomingProduct, source, now, catalogOrder));
+                    Product product = createFrom(incomingProduct, source, now, catalogOrder);
+                    toSave.add(product);
+                    createdProducts.add(product);
                     created++;
 
                 } else {
+
+                    boolean priceChanged =
+                            !samePrice(stored.getPrice(), incomingProduct.getPrice());
 
                     boolean changed = applyChanges(stored, incomingProduct);
 
@@ -139,6 +155,10 @@ public class ProductSyncService {
                     stored.setLastSyncedAt(now);
 
                     toSave.add(stored);
+
+                    if (priceChanged) {
+                        priceChangedProducts.add(stored);
+                    }
 
                     if (changed) {
                         updated++;
@@ -173,6 +193,8 @@ public class ProductSyncService {
 
         persist(toSave);
 
+        recordPriceHistory(toSave, createdProducts, priceChangedProducts, now);
+
         return new SyncResult(
                 received,
                 created,
@@ -181,6 +203,43 @@ public class ProductSyncService {
                 deactivated,
                 errors
         );
+    }
+
+    /*
+     * Añade una fila al historial de precios para los productos recién creados
+     * (precio inicial) y para los que cambiaron de precio en esta sincronización.
+     * Se ejecuta en la misma transacción que el guardado de productos.
+     */
+    private void recordPriceHistory(
+            List<Product> saved,
+            Set<Product> createdProducts,
+            Set<Product> priceChangedProducts,
+            Instant recordedAt) {
+
+        List<ProductPriceHistory> historyToSave = new ArrayList<>();
+
+        for (Product product : saved) {
+
+            if (!createdProducts.contains(product)
+                    && !priceChangedProducts.contains(product)) {
+                continue;
+            }
+
+            if (product.getId() == null || product.getPrice() == null) {
+                continue;
+            }
+
+            ProductPriceHistory history = new ProductPriceHistory();
+            history.setProductId(product.getId());
+            history.setPrice(product.getPrice());
+            history.setRecordedAt(recordedAt);
+
+            historyToSave.add(history);
+        }
+
+        if (!historyToSave.isEmpty()) {
+            priceHistoryRepository.saveAll(historyToSave);
+        }
     }
 
     private Product createFrom(

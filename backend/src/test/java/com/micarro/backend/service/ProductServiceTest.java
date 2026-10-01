@@ -27,9 +27,11 @@ import com.micarro.backend.dto.CategoryCount;
 import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.dto.GroupResponse;
 import com.micarro.backend.dto.PageResponse;
+import com.micarro.backend.dto.ProductPriceChangeResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.repository.ProductRepository;
+import com.micarro.backend.repository.ProductRepository.ProductPriceChangeRow;
 
 @ExtendWith(MockitoExtension.class)
 class ProductServiceTest {
@@ -417,5 +419,160 @@ class ProductServiceTest {
         assertThat(response.getContent()).hasSize(1);
         assertThat(response.getContent().get(0).getName()).isEqualTo("Nuevo");
         assertThat(response.getTotalElements()).isEqualTo(1);
+    }
+
+    private ProductPriceChangeRow row(long id, String current, String previous) {
+
+        return new ProductPriceChangeRow() {
+            @Override
+            public Long getId() {
+                return id;
+            }
+
+            @Override
+            public String getExternalId() {
+                return "ext-" + id;
+            }
+
+            @Override
+            public String getName() {
+                return "Producto " + id;
+            }
+
+            @Override
+            public String getBrand() {
+                return "Marca";
+            }
+
+            @Override
+            public String getCategory() {
+                return "Categoria";
+            }
+
+            @Override
+            public String getImageUrl() {
+                return "http://example.com/" + id + ".jpg";
+            }
+
+            @Override
+            public String getFormat() {
+                return "1 kg";
+            }
+
+            @Override
+            public BigDecimal getCurrentPrice() {
+                return new BigDecimal(current);
+            }
+
+            @Override
+            public BigDecimal getPreviousPrice() {
+                return new BigDecimal(previous);
+            }
+        };
+    }
+
+    @Test
+    void getNewProducts_returnsProductsSeenInLast30Days() {
+
+        Product nuevo = product(1, "Nuevo", "5");
+        nuevo.setFirstSeenAt(Instant.now());
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Sort recentSort = Sort.by(Sort.Order.desc("firstSeenAt"));
+        Pageable sortedPageable = PageRequest.of(0, 10, recentSort);
+
+        when(productRepository.findByActiveTrueAndFirstSeenAtGreaterThanEqual(
+                any(), org.mockito.ArgumentMatchers.eq(sortedPageable)))
+                .thenReturn(new PageImpl<>(List.of(nuevo), sortedPageable, 1));
+
+        PageResponse<ProductPriceChangeResponse> response =
+                productService.getNewProducts(pageable);
+
+        ProductPriceChangeResponse item = response.getContent().get(0);
+        assertThat(item.getCurrentPrice()).isEqualByComparingTo("5");
+        assertThat(item.getPreviousPrice()).isNull();
+        assertThat(item.getDifference()).isNull();
+        assertThat(item.getDifferencePercent()).isNull();
+        assertThat(item.getFirstSeenAt()).isNotNull();
+    }
+
+    @Test
+    void getPriceDrops_mapsDifferenceAndPercentPreservingRepoOrder() {
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Pageable unsorted = PageRequest.of(0, 10);
+
+        // Orden que ya viene del SQL: mayor bajada primero.
+        PageImpl<ProductPriceChangeRow> page = new PageImpl<>(
+                List.of(
+                        row(1, "5", "10"),   // -50%
+                        row(2, "7", "10")    // -30%
+                ),
+                unsorted,
+                2
+        );
+
+        when(productRepository.findPriceDrops(any(), org.mockito.ArgumentMatchers.eq(unsorted)))
+                .thenReturn(page);
+
+        PageResponse<ProductPriceChangeResponse> response =
+                productService.getPriceDrops(pageable);
+
+        assertThat(response.getContent()).hasSize(2);
+
+        ProductPriceChangeResponse first = response.getContent().get(0);
+        assertThat(first.getCurrentPrice()).isEqualByComparingTo("5");
+        assertThat(first.getPreviousPrice()).isEqualByComparingTo("10");
+        assertThat(first.getDifference()).isEqualByComparingTo("-5");
+        assertThat(first.getDifferencePercent()).isEqualByComparingTo("-50.00");
+
+        ProductPriceChangeResponse second = response.getContent().get(1);
+        assertThat(second.getDifferencePercent()).isEqualByComparingTo("-30.00");
+    }
+
+    @Test
+    void getPriceRaises_mapsRiseAndPercent() {
+
+        Pageable pageable = PageRequest.of(0, 10);
+        Pageable unsorted = PageRequest.of(0, 10);
+
+        PageImpl<ProductPriceChangeRow> page = new PageImpl<>(
+                List.of(row(3, "12", "10")),   // +20%
+                unsorted,
+                1
+        );
+
+        when(productRepository.findPriceRaises(any(), org.mockito.ArgumentMatchers.eq(unsorted)))
+                .thenReturn(page);
+
+        PageResponse<ProductPriceChangeResponse> response =
+                productService.getPriceRaises(pageable);
+
+        ProductPriceChangeResponse item = response.getContent().get(0);
+        assertThat(item.getDifference()).isEqualByComparingTo("2");
+        assertThat(item.getDifferencePercent()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    void priceChanges_usesCutoffThirtyDaysAgo() {
+
+        ProductPriceChangeRow drop = row(4, "6", "9");
+        Pageable pageable = PageRequest.of(0, 10);
+
+        when(productRepository.findPriceDrops(
+                org.mockito.ArgumentMatchers.argThat(
+                        instant -> {
+                            Instant expected = Instant.now().minus(30, ChronoUnit.DAYS);
+                            return instant.isAfter(expected.minusSeconds(60))
+                                    && instant.isBefore(expected.plusSeconds(60));
+                        }
+                ),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(new PageImpl<>(List.of(drop), PageRequest.of(0, 10), 1));
+
+        PageResponse<ProductPriceChangeResponse> response =
+                productService.getPriceDrops(pageable);
+
+        assertThat(response.getContent()).hasSize(1);
     }
 }

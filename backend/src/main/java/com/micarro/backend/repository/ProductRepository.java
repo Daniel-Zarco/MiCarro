@@ -1,5 +1,6 @@
 package com.micarro.backend.repository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
@@ -16,6 +17,23 @@ import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.entity.Product;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    /*
+     * Fila para bajadas/subidas: precio actual (products.price) y el precio
+     * vigente hace la ventana configurada (última fila del historial con
+     * recorded_at <= cutoff). Se mapea por proyección nativa.
+     */
+    interface ProductPriceChangeRow {
+        Long getId();
+        String getExternalId();
+        String getName();
+        String getBrand();
+        String getCategory();
+        String getImageUrl();
+        String getFormat();
+        BigDecimal getCurrentPrice();
+        BigDecimal getPreviousPrice();
+    }
 
     Optional<Product> findByExternalId(String externalId);
 
@@ -112,6 +130,105 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     Page<Product> findByActiveTrueAndFirstSeenAtGreaterThanEqual(
             Instant since,
+            Pageable pageable
+    );
+
+    /*
+     * Bajadas de precio: productos activos cuyo precio actual es menor que el
+     * vigente hace la ventana (cutoff), ordenados por mayor % de bajada primero.
+     * El filtrado y la paginación ocurren en PostgreSQL (no se filtra después).
+     */
+    @Query(
+            value = """
+                    select
+                      p.id as id, p.external_id as externalId, p.name as name,
+                      p.brand as brand, p.category as category, p.image_url as imageUrl,
+                      p.format as format, p.price as currentPrice,
+                      prev.price as previousPrice
+                    from products p
+                    join lateral (
+                      select ph.price
+                      from product_price_history ph
+                      where ph.product_id = p.id and ph.recorded_at <= :cutoff
+                      order by ph.recorded_at desc
+                      limit 1
+                    ) prev on true
+                    where p.active = true
+                      and p.price is not null
+                      and prev.price is not null
+                      and p.price <> prev.price
+                      and p.price < prev.price
+                    order by (p.price - prev.price) / prev.price asc
+                    """,
+            countQuery = """
+                    select count(*)
+                    from products p
+                    join lateral (
+                      select ph.price
+                      from product_price_history ph
+                      where ph.product_id = p.id and ph.recorded_at <= :cutoff
+                      order by ph.recorded_at desc
+                      limit 1
+                    ) prev on true
+                    where p.active = true
+                      and p.price is not null
+                      and prev.price is not null
+                      and p.price <> prev.price
+                      and p.price < prev.price
+                    """,
+            nativeQuery = true
+    )
+    Page<ProductPriceChangeRow> findPriceDrops(
+            @Param("cutoff") Instant cutoff,
+            Pageable pageable
+    );
+
+    /*
+     * Subidas de precio: análogo a bajadas pero con el precio actual mayor,
+     * ordenado por mayor % de subida primero.
+     */
+    @Query(
+            value = """
+                    select
+                      p.id as id, p.external_id as externalId, p.name as name,
+                      p.brand as brand, p.category as category, p.image_url as imageUrl,
+                      p.format as format, p.price as currentPrice,
+                      prev.price as previousPrice
+                    from products p
+                    join lateral (
+                      select ph.price
+                      from product_price_history ph
+                      where ph.product_id = p.id and ph.recorded_at <= :cutoff
+                      order by ph.recorded_at desc
+                      limit 1
+                    ) prev on true
+                    where p.active = true
+                      and p.price is not null
+                      and prev.price is not null
+                      and p.price <> prev.price
+                      and p.price > prev.price
+                    order by (p.price - prev.price) / prev.price desc
+                    """,
+            countQuery = """
+                    select count(*)
+                    from products p
+                    join lateral (
+                      select ph.price
+                      from product_price_history ph
+                      where ph.product_id = p.id and ph.recorded_at <= :cutoff
+                      order by ph.recorded_at desc
+                      limit 1
+                    ) prev on true
+                    where p.active = true
+                      and p.price is not null
+                      and prev.price is not null
+                      and p.price <> prev.price
+                      and p.price > prev.price
+                    """,
+            nativeQuery = true
+    )
+    Page<ProductPriceChangeRow> findPriceRaises(
+            @Param("cutoff") Instant cutoff,
             Pageable pageable
     );
 }

@@ -5,6 +5,7 @@ import java.util.List;
 import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.dto.GroupResponse;
 import com.micarro.backend.dto.PageResponse;
+import com.micarro.backend.dto.ProductPriceChangeResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.service.ProductService;
@@ -55,6 +56,24 @@ public class ProductController {
     @GetMapping("/recent")
     public PageResponse<ProductResponse> getRecentProducts(Pageable pageable) {
         return productService.getRecentProducts(pageable);
+    }
+
+    @GetMapping("/new")
+    public PageResponse<ProductPriceChangeResponse> getNewProducts(
+            Pageable pageable) {
+        return productService.getNewProducts(pageable);
+    }
+
+    @GetMapping("/price-drops")
+    public PageResponse<ProductPriceChangeResponse> getPriceDrops(
+            Pageable pageable) {
+        return productService.getPriceDrops(pageable);
+    }
+
+    @GetMapping("/price-raises")
+    public PageResponse<ProductPriceChangeResponse> getPriceRaises(
+            Pageable pageable) {
+        return productService.getPriceRaises(pageable);
     }
 
     @GetMapping("/{id}")

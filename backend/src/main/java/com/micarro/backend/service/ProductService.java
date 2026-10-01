@@ -18,9 +18,11 @@ import com.micarro.backend.dto.CategoryCount;
 import com.micarro.backend.dto.CategoryResponse;
 import com.micarro.backend.dto.GroupResponse;
 import com.micarro.backend.dto.PageResponse;
+import com.micarro.backend.dto.ProductPriceChangeResponse;
 import com.micarro.backend.dto.ProductResponse;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.repository.ProductRepository;
+import com.micarro.backend.repository.ProductRepository.ProductPriceChangeRow;
 
 @Service
 public class ProductService {
@@ -224,6 +226,71 @@ public class ProductService {
                 page.getContent()
                         .stream()
                         .map(this::toResponse)
+                        .toList()
+        );
+    }
+
+    private static final int NEW_WINDOW_DAYS = 30;
+    private static final int PRICE_WINDOW_DAYS = 30;
+
+    /*
+     * Nuevos: productos activos detectados en los últimos 30 días por
+     * firstSeenAt, ordenados por firstSeenAt desc.
+     */
+    public PageResponse<ProductPriceChangeResponse> getNewProducts(Pageable pageable) {
+
+        Instant since = Instant.now().minus(NEW_WINDOW_DAYS, ChronoUnit.DAYS);
+
+        Pageable sortedPageable = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                RECENT_PRODUCT_SORT
+        );
+
+        Page<Product> page = productRepository
+                .findByActiveTrueAndFirstSeenAtGreaterThanEqual(
+                        since,
+                        sortedPageable
+                );
+
+        return PageResponse.from(
+                page,
+                page.getContent()
+                        .stream()
+                        .map(ProductPriceChangeResponse::forNewProduct)
+                        .toList()
+        );
+    }
+
+    public PageResponse<ProductPriceChangeResponse> getPriceDrops(Pageable pageable) {
+        return priceChanges(pageable, true);
+    }
+
+    public PageResponse<ProductPriceChangeResponse> getPriceRaises(Pageable pageable) {
+        return priceChanges(pageable, false);
+    }
+
+    private PageResponse<ProductPriceChangeResponse> priceChanges(
+            Pageable pageable,
+            boolean drops) {
+
+        Instant cutoff = Instant.now().minus(PRICE_WINDOW_DAYS, ChronoUnit.DAYS);
+
+        // Sin sort adicional: el orden (mayor % primero) lo define la consulta SQL.
+        Pageable unsorted = PageRequest.of(
+                pageable.getPageNumber(),
+                pageable.getPageSize()
+        );
+
+        Page<ProductPriceChangeRow> page = drops
+                ? productRepository.findPriceDrops(cutoff, unsorted)
+                : productRepository.findPriceRaises(cutoff, unsorted);
+
+        return PageResponse.from(
+                page,
+                page.getContent()
+                        .stream()
+                        .map(ProductPriceChangeResponse::fromRow)
                         .toList()
         );
     }

@@ -41,10 +41,22 @@ describe('App', () => {
     { name: 'Verdura', productCount: 3 },
   ]));
 
+  const getNovedades = vi.fn(() => of({
+    content: [{ ...product, currentPrice: 2.5, previousPrice: 3, difference: -0.5, differencePercent: -16.67, firstSeenAt: null }],
+    page: 0,
+    totalPages: 1,
+    totalElements: 1,
+    size: 24,
+    first: true,
+    last: true,
+    empty: false,
+  }));
+
   beforeEach(async () => {
     getProducts.mockClear();
     getCategories.mockClear();
     getCategoryGroups.mockClear();
+    getNovedades.mockClear();
 
     await TestBed.configureTestingModule({
       imports: [App],
@@ -52,7 +64,7 @@ describe('App', () => {
         provideHttpClient(),
         {
           provide: ProductService,
-          useValue: { getProducts, getCategories, getCategoryGroups },
+          useValue: { getProducts, getCategories, getCategoryGroups, getNovedades },
         },
       ],
     }).compileComponents();
@@ -295,5 +307,32 @@ describe('App', () => {
         element.querySelectorAll<HTMLButtonElement>('.catalog-mode-button')
       ).some(button => button.textContent?.includes('Volver a grupos'))
     ).toBe(true);
+  });
+
+  it('cambia de sección en Novedades y muestra el cambio de precio', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+
+    element.querySelector<HTMLButtonElement>('.recent-button')!.click();
+    fixture.detectChanges();
+
+    expect(getNovedades).toHaveBeenCalledWith('new', 0, 24);
+
+    const tabs = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('.novedades-tabs button')
+    );
+    expect(tabs.length).toBe(3);
+    expect(tabs[1].textContent).toContain('Bajadas de precio');
+
+    tabs[1].click();
+    fixture.detectChanges();
+
+    expect(getNovedades).toHaveBeenLastCalledWith('price-drops', 0, 24);
+
+    // La card muestra el badge de bajada y el precio anterior tachado.
+    expect(element.querySelector('.price-change')?.textContent).toContain('↓');
+    expect(element.querySelector('.price-previous')).not.toBeNull();
   });
 });
