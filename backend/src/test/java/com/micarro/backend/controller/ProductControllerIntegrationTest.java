@@ -1,5 +1,6 @@
 package com.micarro.backend.controller;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -8,6 +9,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
@@ -18,6 +23,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jayway.jsonpath.JsonPath;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.repository.ProductRepository;
@@ -36,6 +43,9 @@ class ProductControllerIntegrationTest {
 
     @Autowired
     private MainCategoryMapper mainCategoryMapper;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private String uniqueExternalId() {
         return "test-" + UUID.randomUUID();
@@ -539,5 +549,54 @@ class ProductControllerIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(2))
                 .andExpect(jsonPath("$.content[0].name").value("Reciente A"))
                 .andExpect(jsonPath("$.content[1].name").value("Reciente B"));
+    }
+
+    @Test
+    void getProducts_paginationIsDeterministicWithCatalogOrderTies() throws Exception {
+
+        int size = 10;
+        int count = size + 5; // más productos que el tamaño de página con el MISMO catalogOrder
+        int sameCatalogOrder = 7;
+
+        List<Long> expected = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Product product = product(
+                    "Producto orden " + i,
+                    "Categoria",
+                    sameCatalogOrder,
+                    true
+            );
+            expected.add(product.getId());
+        }
+        // Mismo catalogOrder -> el orden es catalogOrder ASC (igual), id ASC.
+        expected.sort(Comparator.naturalOrder());
+
+        List<Long> seen = new ArrayList<>();
+        int page = 0;
+        boolean last = false;
+
+        while (!last) {
+            String body = mockMvc.perform(get("/api/products")
+                            .param("size", String.valueOf(size))
+                            .param("page", String.valueOf(page)))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            JsonNode root = objectMapper.readTree(body);
+            for (JsonNode item : root.path("content")) {
+                seen.add(item.get("id").asLong());
+            }
+            last = root.path("last").asBoolean();
+            page++;
+        }
+
+        // Ningún id repetido entre páginas y ningún producto perdido.
+        assertThat(seen).hasSize(count);
+        assertThat(new HashSet<>(seen)).hasSize(count);
+
+        // Orden determinista: mismo catalogOrder -> id ASC.
+        assertThat(seen).isEqualTo(expected);
     }
 }

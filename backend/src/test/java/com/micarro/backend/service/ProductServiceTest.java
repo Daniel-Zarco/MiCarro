@@ -71,7 +71,10 @@ class ProductServiceTest {
     }
 
     private Pageable sortedPageable(Pageable pageable) {
-        Sort defaultSort = Sort.by(Sort.Order.asc("catalogOrder"));
+        Sort defaultSort = Sort.by(
+                Sort.Order.asc("catalogOrder"),
+                Sort.Order.asc("id")
+        );
 
         return PageRequest.of(
                 pageable.getPageNumber(),

@@ -49,7 +49,10 @@ public class ProductService {
     }
 
     private static final Sort DEFAULT_PRODUCT_SORT =
-            Sort.by(Sort.Order.asc("catalogOrder"));
+            Sort.by(
+                    Sort.Order.asc("catalogOrder"),
+                    Sort.Order.asc("id")
+            );
 
     private static final Sort PRICE_ASC_SORT =
             Sort.by(
