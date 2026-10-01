@@ -221,10 +221,10 @@ public class ProductService {
         );
 
         return switch (sortBy == null ? "catalog" : sortBy) {
-            case "price-asc" -> productRepository.searchByPriceAsc(tokensParam, unsorted);
-            case "price-desc" -> productRepository.searchByPriceDesc(tokensParam, unsorted);
-            case "name" -> productRepository.searchByNameAsc(tokensParam, unsorted);
-            case "name-desc" -> productRepository.searchByNameDesc(tokensParam, unsorted);
+            case "price-asc" -> productRepository.searchByPriceAsc(tokensParam, normalized, unsorted);
+            case "price-desc" -> productRepository.searchByPriceDesc(tokensParam, normalized, unsorted);
+            case "name" -> productRepository.searchByNameAsc(tokensParam, normalized, unsorted);
+            case "name-desc" -> productRepository.searchByNameDesc(tokensParam, normalized, unsorted);
             default -> productRepository.searchWithRelevance(
                     tokensParam,
                     normalized,

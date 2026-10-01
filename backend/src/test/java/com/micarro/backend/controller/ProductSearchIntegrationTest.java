@@ -164,14 +164,13 @@ class ProductSearchIntegrationTest {
     void search_leche_prioritizesMilkOverCheese() throws Exception {
 
         Product leche = product("Leche entera Hacendado", "Leche", "Leche, huevos y lácteos", "Leche", "1", 1);
-        Product queso = product("Queso manchego", "Queso curado", "Leche, huevos y lácteos", "Quesos", "3", 2);
+        product("Queso manchego", "Queso curado", "Leche, huevos y lácteos", "Quesos", "3", 2);
 
-        // El queso solo coincide por compartir mainCategory: debe ir después
-        // de la leche, que coincide en visualGroup/category.
+        // El queso solo coincide por mainCategory parcial: NO debe entrar.
         mockMvc.perform(get("/api/products").param("search", "leche"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content[0].id").value(leche.getId()))
-                .andExpect(jsonPath("$.content[1].id").value(queso.getId()));
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(leche.getId()));
     }
 
     @Test
@@ -244,5 +243,122 @@ class ProductSearchIntegrationTest {
         mockMvc.perform(get("/api/products").param("search", "leche condensada"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(crema.getId()));
+    }
+
+    @Test
+    void search_allSortsReturnTheSameIdSet() throws Exception {
+
+        // Solo los productos con "huevo" en name/category entran; queso, leche y
+        // yogur NO entran únicamente por mainCategory "Leche, huevos y lácteos".
+        Product huevo1 = product("Huevos grandes L", "Huevos", "Leche, huevos y lácteos", "Huevos", "5", 1);
+        Product huevo2 = product("Huevos cocidos", "Huevos", "Leche, huevos y lácteos", "Huevos", "3", 2);
+        product("Queso curado mezcla Hacendado", "Queso curado", "Leche, huevos y lácteos", "Quesos", "20", 3);
+        product("Leche entera Hacendado", "Leche entera", "Leche, huevos y lácteos", "Leche", "1", 4);
+        product("Yogur natural Hacendado", "Yogures naturales", "Leche, huevos y lácteos", "Yogures", "2", 5);
+
+        List<Integer> catalog = fetchIds("catalog");
+        List<Integer> priceDesc = fetchIds("price-desc");
+        List<Integer> priceAsc = fetchIds("price-asc");
+        List<Integer> name = fetchIds("name");
+        List<Integer> nameDesc = fetchIds("name-desc");
+
+        // El sort manual solo sustituye el ORDER BY: el conjunto debe ser el mismo.
+        assertThat(priceDesc).containsExactlyInAnyOrderElementsOf(catalog);
+        assertThat(priceAsc).containsExactlyInAnyOrderElementsOf(catalog);
+        assertThat(name).containsExactlyInAnyOrderElementsOf(catalog);
+        assertThat(nameDesc).containsExactlyInAnyOrderElementsOf(catalog);
+
+        // Solo los huevos entran; el queso/leche/yogur no.
+        assertThat(catalog).containsExactlyInAnyOrder(huevo1.getId().intValue(), huevo2.getId().intValue());
+    }
+
+    @Test
+    void search_huevo_doesNotReturnCheeseOrYogurt() throws Exception {
+
+        Product huevo = product("Huevos grandes L", "Huevos", "Leche, huevos y lácteos", "Huevos", "5", 1);
+        product("Queso curado mezcla Hacendado", "Queso curado", "Leche, huevos y lácteos", "Quesos", "20", 2);
+        product("Yogur natural Hacendado", "Yogures naturales", "Leche, huevos y lácteos", "Yogures", "2", 3);
+
+        // "huevo" no arrastra queso ni yogur por compartir mainCategory.
+        mockMvc.perform(get("/api/products").param("search", "huevo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].id").value(huevo.getId()));
+    }
+
+    @Test
+    void search_carne_returnsWholeMainCategory() throws Exception {
+
+        // Nombres sin "carne": solo entran por coincidencia EXACTA de mainCategory.
+        Product chuleton = product("Chuletón de ternera", "Vacuno", "Carne", "Vacuno", "8", 1);
+        Product hamburguesas = product("Hamburguesas de vacuno", "Hamburguesas", "Carne", "Hamburguesas y picadas", "6", 2);
+        Product chili = product("Chili con carne", "Otras salsas", "Aceites, salsas y especias", "Salsas y vinagres", "2", 3);
+
+        mockMvc.perform(get("/api/products").param("search", "carne"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(3))
+                .andExpect(jsonPath("$.content[0].id").value(chuleton.getId()))
+                .andExpect(jsonPath("$.content[1].id").value(hamburguesas.getId()))
+                .andExpect(jsonPath("$.content[2].id").value(chili.getId()));
+    }
+
+    @Test
+    void search_all19MainCategoriesAreSearchable() throws Exception {
+
+        String[] mainCategories = {
+            "Frutas y verduras", "Carne", "Pescado y marisco", "Charcutería",
+            "Leche, huevos y lácteos", "Panadería y bollería", "Arroz, pasta y legumbres",
+            "Conservas", "Aceites, salsas y especias", "Desayuno y dulces",
+            "Snacks y frutos secos", "Bebidas", "Congelados", "Platos preparados",
+            "Limpieza del hogar", "Higiene y cuidado personal", "Bebé", "Mascotas",
+            "Hogar y otros"
+        };
+
+        List<Long> ids = new ArrayList<>();
+        for (int i = 0; i < mainCategories.length; i++) {
+            Product product = product(
+                    "Producto categoria " + i,
+                    "Categoria " + i,
+                    mainCategories[i],
+                    "Grupo " + i,
+                    "1",
+                    i
+            );
+            ids.add(product.getId());
+        }
+
+        for (int i = 0; i < mainCategories.length; i++) {
+            mockMvc.perform(get("/api/products").param("search", mainCategories[i]))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.content[0].id").value(ids.get(i)));
+        }
+    }
+
+    private List<Integer> fetchIds(String sortBy) throws Exception {
+
+        List<Integer> ids = new ArrayList<>();
+        int page = 0;
+        boolean last = false;
+
+        while (!last) {
+            String body = mockMvc.perform(get("/api/products")
+                            .param("search", "huevo")
+                            .param("sortBy", sortBy)
+                            .param("size", "10")
+                            .param("page", String.valueOf(page)))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString();
+
+            JsonNode root = objectMapper.readTree(body);
+            for (JsonNode item : root.path("content")) {
+                ids.add(item.get("id").asInt());
+            }
+            last = root.path("last").asBoolean();
+            page++;
+        }
+
+        return ids;
     }
 }

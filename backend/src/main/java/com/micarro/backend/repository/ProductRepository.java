@@ -302,14 +302,26 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     String VG_TEXT = "translate(lower(coalesce(p.visual_group, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
     String CAT_TEXT = "translate(lower(coalesce(p.category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
     String VG_CAT_TEXT = "translate(lower(coalesce(p.visual_group, '') || ' ' || coalesce(p.category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
-    String ALL_TEXT = "translate(lower(coalesce(p.name, '') || ' ' || coalesce(p.main_category, '') || ' ' || coalesce(p.visual_group, '') || ' ' || coalesce(p.category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
 
     String NAME_MATCHES = "(select bool_and(regexp_like(" + NAME_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
     String MAIN_MATCHES = "(select bool_and(regexp_like(" + MAIN_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
+    String VG_MATCHES = "(select bool_and(regexp_like(" + VG_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
+    String CAT_MATCHES = "(select bool_and(regexp_like(" + CAT_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
     String VG_CAT_MATCHES = "(select bool_and(regexp_like(" + VG_CAT_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
-    String ALL_MATCHES = "(select bool_and(regexp_like(" + ALL_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
 
-    String TOKEN_SEARCH_WHERE = "p.active = true and " + ALL_MATCHES;
+    /*
+     * Un producto ENTRA en la búsqueda si todos los tokens coinciden en name,
+     * visualGroup o category, o si la búsqueda completa coincide EXACTAMENTE con
+     * mainCategory. Una coincidencia parcial de mainCategory NO incorpora
+     * productos (p. ej. "huevo" no arrastra toda la mainCategory
+     * "Leche, huevos y lácteos").
+     */
+    String TOKEN_SEARCH_WHERE = "p.active = true and ("
+            + NAME_MATCHES
+            + " or " + VG_MATCHES
+            + " or " + CAT_MATCHES
+            + " or " + MAIN_TEXT + " = :exact"
+            + ")";
 
     /*
      * Ranking de relevancia (estructura + coincidencia en nombre):
@@ -359,6 +371,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     )
     Page<Product> searchByPriceAsc(
             @Param("tokens") String tokens,
+            @Param("exact") String exact,
             Pageable pageable
     );
 
@@ -370,6 +383,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     )
     Page<Product> searchByPriceDesc(
             @Param("tokens") String tokens,
+            @Param("exact") String exact,
             Pageable pageable
     );
 
@@ -381,6 +395,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     )
     Page<Product> searchByNameAsc(
             @Param("tokens") String tokens,
+            @Param("exact") String exact,
             Pageable pageable
     );
 
@@ -392,6 +407,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     )
     Page<Product> searchByNameDesc(
             @Param("tokens") String tokens,
+            @Param("exact") String exact,
             Pageable pageable
     );
 }

@@ -147,12 +147,12 @@ class ProductServiceTest {
         Pageable pageable = PageRequest.of(0, 5);
         Pageable unsorted = PageRequest.of(0, 5);
 
-        when(productRepository.searchByPriceAsc(anyString(), eq(unsorted)))
+        when(productRepository.searchByPriceAsc(anyString(), anyString(), eq(unsorted)))
                 .thenReturn(new PageImpl<>(List.of(), unsorted, 0));
 
         productService.getProducts("pollo", null, null, "price-asc", pageable);
 
-        verify(productRepository).searchByPriceAsc(anyString(), eq(unsorted));
+        verify(productRepository).searchByPriceAsc(anyString(), eq("pollo"), eq(unsorted));
     }
 
     @Test
