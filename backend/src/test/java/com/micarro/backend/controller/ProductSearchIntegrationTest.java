@@ -205,4 +205,44 @@ class ProductSearchIntegrationTest {
                 .andExpect(jsonPath("$.content.length()").value(1))
                 .andExpect(jsonPath("$.content[0].id").value(galletasChocolate.getId()));
     }
+
+    @Test
+    void search_leche_prioritizesNormalMilkOverPreparadosAndInfant() throws Exception {
+
+        Product preparado = product("Preparado lácteo con cereales y frutas Peques 3 Puleva", "Leche", "Leche, huevos y lácteos", "Leche", "2", 1);
+        Product infantil = product("Leche para lactantes en polvo 1 Nativa Nestlé", "Leche en polvo", "Leche, huevos y lácteos", "Leche en polvo", "3", 2);
+        Product crema = product("Crema de leche para café Campina", "Leche condensada y otros", "Leche, huevos y lácteos", "Leche condensada y otros", "4", 3);
+        Product leche = product("Leche semidesnatada Hacendado", "Leche semidesnatada", "Leche, huevos y lácteos", "Leche", "1", 10);
+
+        // Leche normal (grupo "Leche" + nombre) primero; preparado con nombre sin
+        // "leche" después; infantil y crema (grupos propios) al final.
+        mockMvc.perform(get("/api/products").param("search", "leche"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(leche.getId()))
+                .andExpect(jsonPath("$.content[1].id").value(preparado.getId()))
+                .andExpect(jsonPath("$.content[2].id").value(infantil.getId()))
+                .andExpect(jsonPath("$.content[3].id").value(crema.getId()));
+    }
+
+    @Test
+    void search_lecheEnPolvo_prioritizesInfantFormula() throws Exception {
+
+        Product infantil = product("Leche para lactantes en polvo 1 Nativa Nestlé", "Leche en polvo", "Leche, huevos y lácteos", "Leche en polvo", "3", 1);
+        product("Leche semidesnatada Hacendado", "Leche semidesnatada", "Leche, huevos y lácteos", "Leche", "1", 10);
+
+        mockMvc.perform(get("/api/products").param("search", "leche en polvo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(infantil.getId()));
+    }
+
+    @Test
+    void search_lecheCondensada_prioritizesCondensed() throws Exception {
+
+        Product crema = product("Crema de leche para café Campina", "Leche condensada y otros", "Leche, huevos y lácteos", "Leche condensada y otros", "4", 1);
+        product("Leche semidesnatada Hacendado", "Leche semidesnatada", "Leche, huevos y lácteos", "Leche", "1", 10);
+
+        mockMvc.perform(get("/api/products").param("search", "leche condensada"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].id").value(crema.getId()));
+    }
 }

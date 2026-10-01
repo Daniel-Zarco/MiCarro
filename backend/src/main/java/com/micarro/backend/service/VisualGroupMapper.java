@@ -127,8 +127,12 @@ public class VisualGroupMapper {
 
         // ===== Leche, huevos y lácteos =====
         add(tree, LECHE_HUEVOS_LACTEOS, "Leche",
-                "Leche", "Leche condensada y otros", "Leche desnatada",
-                "Leche en polvo", "Leche entera", "Leche semidesnatada");
+                "Leche", "Leche desnatada", "Leche entera",
+                "Leche semidesnatada");
+        add(tree, LECHE_HUEVOS_LACTEOS, "Leche en polvo",
+                "Leche en polvo");
+        add(tree, LECHE_HUEVOS_LACTEOS, "Leche condensada y otros",
+                "Leche condensada y otros");
         add(tree, LECHE_HUEVOS_LACTEOS, "Huevos",
                 "Huevos");
         add(tree, LECHE_HUEVOS_LACTEOS, "Yogures",

@@ -98,6 +98,29 @@ class VisualGroupMapperTest {
                 .contains("Varios");
     }
 
+    @Test
+    void lecheGroupIsSplitFromPowderedAndCondensed() {
+
+        // Leche normal en su grupo propio.
+        assertThat(visualGroupMapper.visualGroup("Leche"))
+                .isEqualTo("Leche");
+        assertThat(visualGroupMapper.visualGroup("Leche semidesnatada"))
+                .isEqualTo("Leche");
+        assertThat(visualGroupMapper.visualGroup("Leche desnatada"))
+                .isEqualTo("Leche");
+        assertThat(visualGroupMapper.visualGroup("Leche entera"))
+                .isEqualTo("Leche");
+
+        // Leche en polvo y condensada en grupos propios (para relevancia).
+        assertThat(visualGroupMapper.visualGroup("Leche en polvo"))
+                .isEqualTo("Leche en polvo");
+        assertThat(visualGroupMapper.visualGroup("Leche condensada y otros"))
+                .isEqualTo("Leche condensada y otros");
+
+        assertThat(visualGroupMapper.groupsOf(MainCategoryMapper.LECHE_HUEVOS_LACTEOS))
+                .contains("Leche", "Leche en polvo", "Leche condensada y otros");
+    }
+
     private static String normalize(String value) {
         return value.trim().toLowerCase(Locale.ROOT);
     }

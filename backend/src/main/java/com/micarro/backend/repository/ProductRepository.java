@@ -294,61 +294,51 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
      * unnest. Un producto coincide si TODOS los tokens están en name,
      * main_category, visual_group o category (AND). Case/accent-insensitive.
      */
-    String TOKEN_SEARCH_WHERE = """
-            p.active = true
-            and (
-              select bool_and(regexp_like(
-                translate(lower(
-                  coalesce(p.name, '') || ' ' ||
-                  coalesce(p.main_category, '') || ' ' ||
-                  coalesce(p.visual_group, '') || ' ' ||
-                  coalesce(p.category, '')
-                ), 'áéíóúüñ', 'aeiouun'),
-                t))
-              from unnest(string_to_array(:tokens, chr(1))) t
-            )
-            """;
+    String ACCENT_FROM = "'áéíóúüñ'";
+    String ACCENT_TO = "'aeiouun'";
+
+    String NAME_TEXT = "translate(lower(coalesce(p.name, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
+    String MAIN_TEXT = "translate(lower(coalesce(p.main_category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
+    String VG_TEXT = "translate(lower(coalesce(p.visual_group, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
+    String CAT_TEXT = "translate(lower(coalesce(p.category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
+    String VG_CAT_TEXT = "translate(lower(coalesce(p.visual_group, '') || ' ' || coalesce(p.category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
+    String ALL_TEXT = "translate(lower(coalesce(p.name, '') || ' ' || coalesce(p.main_category, '') || ' ' || coalesce(p.visual_group, '') || ' ' || coalesce(p.category, '')), " + ACCENT_FROM + ", " + ACCENT_TO + ")";
+
+    String NAME_MATCHES = "(select bool_and(regexp_like(" + NAME_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
+    String MAIN_MATCHES = "(select bool_and(regexp_like(" + MAIN_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
+    String VG_CAT_MATCHES = "(select bool_and(regexp_like(" + VG_CAT_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
+    String ALL_MATCHES = "(select bool_and(regexp_like(" + ALL_TEXT + ", t)) from unnest(string_to_array(:tokens, chr(1))) t)";
+
+    String TOKEN_SEARCH_WHERE = "p.active = true and " + ALL_MATCHES;
 
     /*
-     * Ranking de relevancia:
-     *   0 mainCategory exacta
-     *   1 visualGroup exacto
-     *   2 category exacta
-     *   3 TODOS los tokens en visualGroup/category
-     *   4 TODOS los tokens en name
-     *   5 TODOS los tokens en mainCategory (coincidencia parcial de categoría)
-     *   6 resto
-     * La coincidencia parcial de mainCategory NUNCA gana al nombre.
+     * Ranking de relevancia (estructura + coincidencia en nombre):
+     *   0 mainCategory EXACTA + tokens en name
+     *   1 mainCategory EXACTA
+     *   2 visualGroup EXACTO + tokens en name
+     *   3 visualGroup EXACTO
+     *   4 category EXACTA + tokens en name
+     *   5 category EXACTA
+     *   6 tokens en visualGroup/category + tokens en name
+     *   7 tokens en visualGroup/category
+     *   8 tokens en name
+     *   9 tokens solo en mainCategory
+     *  10 resto
+     * La coincidencia parcial de mainCategory nunca gana al nombre.
      */
-    String TOKEN_RELEVANCE_ORDER = """
-            order by
-              case
-                when translate(lower(coalesce(p.main_category, '')), 'áéíóúüñ', 'aeiouun') = :exact then 0
-                when translate(lower(coalesce(p.visual_group, '')), 'áéíóúüñ', 'aeiouun') = :exact then 1
-                when translate(lower(coalesce(p.category, '')), 'áéíóúüñ', 'aeiouun') = :exact then 2
-                when (
-                  select bool_and(regexp_like(
-                    translate(lower(coalesce(p.visual_group, '') || ' ' || coalesce(p.category, '')), 'áéíóúüñ', 'aeiouun'),
-                    t))
-                  from unnest(string_to_array(:tokens, chr(1))) t
-                ) then 3
-                when (
-                  select bool_and(regexp_like(
-                    translate(lower(coalesce(p.name, '')), 'áéíóúüñ', 'aeiouun'),
-                    t))
-                  from unnest(string_to_array(:tokens, chr(1))) t
-                ) then 4
-                when (
-                  select bool_and(regexp_like(
-                    translate(lower(coalesce(p.main_category, '')), 'áéíóúüñ', 'aeiouun'),
-                    t))
-                  from unnest(string_to_array(:tokens, chr(1))) t
-                ) then 5
-                else 6
-              end,
-              p.catalog_order asc,
-              p.id asc
-            """;
+    String TOKEN_RELEVANCE_ORDER =
+            "order by case" +
+            " when " + MAIN_TEXT + " = :exact and " + NAME_MATCHES + " then 0" +
+            " when " + MAIN_TEXT + " = :exact then 1" +
+            " when " + VG_TEXT + " = :exact and " + NAME_MATCHES + " then 2" +
+            " when " + VG_TEXT + " = :exact then 3" +
+            " when " + CAT_TEXT + " = :exact and " + NAME_MATCHES + " then 4" +
+            " when " + CAT_TEXT + " = :exact then 5" +
+            " when " + VG_CAT_MATCHES + " and " + NAME_MATCHES + " then 6" +
+            " when " + VG_CAT_MATCHES + " then 7" +
+            " when " + NAME_MATCHES + " then 8" +
+            " when " + MAIN_MATCHES + " then 9" +
+            " else 10 end, p.catalog_order asc, p.id asc";
 
     @Query(
             value = "select p.* from products p where " + TOKEN_SEARCH_WHERE + TOKEN_RELEVANCE_ORDER,
