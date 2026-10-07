@@ -1040,3 +1040,29 @@
     padding: 22px 16px;
   }
 }
+
+
+/* ---------- MiCarro: 'Tipo de compra' en movil (título + subtítulo en línea) ---------- */
+@media (max-width: 768px) {
+
+  .plan-mode-options {
+    grid-template-columns: 1fr;
+  }
+
+  .plan-mode-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 10px;
+
+    min-height: 44px;
+
+    padding: 8px 12px;
+  }
+
+  .plan-mode-card small {
+    white-space: nowrap;
+    text-align: right;
+  }
+}
