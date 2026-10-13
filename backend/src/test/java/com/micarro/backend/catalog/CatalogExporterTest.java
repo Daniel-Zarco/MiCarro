@@ -14,8 +14,9 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import com.micarro.backend.entity.Product;
 import com.micarro.backend.provider.ProductProvider;
 import com.micarro.backend.service.MainCategoryMapper;
@@ -23,8 +24,9 @@ import com.micarro.backend.service.VisualGroupMapper;
 
 class CatalogExporterTest {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper()
-            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+            .build();
 
     @TempDir
     Path tempDir;
