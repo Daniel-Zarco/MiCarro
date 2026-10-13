@@ -146,7 +146,7 @@ public final class CatalogExporter {
 
         try {
             return objectMapper.readValue(output.toFile(), CatalogFile.class);
-        } catch (IOException | RuntimeException exception) {
+        } catch (RuntimeException exception) {
             log.warn(
                     "No se pudo leer el catálogo previo {} ({}); se regenerará desde cero",
                     output,

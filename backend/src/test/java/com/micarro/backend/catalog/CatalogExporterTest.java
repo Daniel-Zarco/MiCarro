@@ -2,7 +2,6 @@ package com.micarro.backend.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,7 +44,7 @@ class CatalogExporterTest {
         return exporter(provider, Clock.systemUTC());
     }
 
-    private CatalogFile readCatalog() throws IOException {
+    private CatalogFile readCatalog() {
         return MAPPER.readValue(
                 tempDir.resolve(CatalogExporter.CATALOG_FILE_NAME).toFile(),
                 CatalogFile.class);
