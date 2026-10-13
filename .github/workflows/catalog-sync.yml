@@ -1,0 +1,78 @@
+name: Sincronizar catálogo
+
+on:
+  schedule:
+    # Cada lunes a las 03:00 UTC.
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: catalog-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Configurar Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Generar catalog.json
+        working-directory: backend
+        run: bash ./mvnw -q -B -Pcatalog-export compile exec:java
+        env:
+          # Opcional: sobreescribe la URL de la fuente externa. Si no existe el
+          # secreto, se usa el valor por defecto del código.
+          MERCADONA_BASE_URL: ${{ secrets.MERCADONA_BASE_URL }}
+
+      # Si el exportador falla, el paso anterior falla y no se llega aquí:
+      # el catalog.json previo (ya commiteado) se conserva intacto.
+      - name: Validar catálogo
+        run: |
+          node -e "const fs=require('fs');const c=JSON.parse(fs.readFileSync('frontend/public/catalog.json','utf8'));const n=(c.products||[]).length;if(n===0){throw new Error('El catálogo no contiene productos');}console.log('Catálogo válido: '+n+' productos');"
+
+      # Puerta de publicación: si Angular no compila, el workflow falla y no se
+      # publica ningún cambio.
+      - name: Compilar Angular
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Confirmar y publicar cambios
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add frontend/public/catalog.json
+
+          # Cubre tanto archivos nuevos (sin trackear) como modificados.
+          if git diff --cached --quiet; then
+            echo "Sin cambios en el catálogo; no se publica nada."
+            exit 0
+          fi
+
+          git commit -m "chore(catalog): actualiza catalog.json"
+          git push
+
+          # El push en la rama principal dispara el auto-deploy de Render
+          # (conectado al repositorio por webhook).

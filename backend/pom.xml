@@ -109,4 +109,34 @@
 		</plugins>
 	</build>
 
+	<profiles>
+		<!--
+			Exportador de catǭlogo JSON sin PostgreSQL.
+			Ejecutar desde backend/:
+			  .\mvnw.cmd -Pcatalog-export compile exec:java
+			Genera frontend/public/catalog.json (activo pǧblico de Angular).
+		-->
+		<profile>
+			<id>catalog-export</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>3.5.0</version>
+						<configuration>
+							<mainClass>com.micarro.backend.catalog.CatalogExportRunner</mainClass>
+							<systemProperties>
+								<systemProperty>
+									<key>micarro.catalog.dir</key>
+									<value>${project.basedir}/../frontend/public</value>
+								</systemProperty>
+							</systemProperties>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
+
 </project>
