@@ -12,11 +12,19 @@ import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 
 /*
+ * PostgREST devuelve un array por defecto (incluso con una sola fila). Para las
+ * inserciones individuales pedimos el objeto unico con este Accept, de modo que
+ * el ID generado (plan.id / history.id) quede disponible en la respuesta.
+ */
+const OBJECT_ACCEPT = 'application/vnd.pgrst.object+json';
+
+/*
  * Cliente mínimo de Supabase sobre PostgREST (REST), sin dependencias externas.
  * Todas las peticiones a /rest/v1/* llevan:
- *  - apikey: la clave publica (en cabecera Y como parametro de URL, para que el
- *    gateway la reciba siempre).
+ *  - apikey: la clave publica, siempre en la cabecera.
  *  - Authorization: Bearer <access_token de Supabase> cuando hay sesion.
+ * Las inserciones individuales piden un objeto unico (Accept:
+ * application/vnd.pgrst.object+json); las masivas mantienen el array por defecto.
  * Si una peticion devuelve 401 por token caducado, renueva y reintenta.
  */
 @Injectable({
@@ -44,7 +52,7 @@ export class SupabaseService {
       this.http.post<T>(
         this.url(table),
         body,
-        { headers: this.headers('return=representation') }
+        { headers: this.headers('return=representation', OBJECT_ACCEPT) }
       )
     );
   }
@@ -79,16 +87,14 @@ export class SupabaseService {
   }
 
   /*
-   * URL comun a todas las peticiones. La apikey viaja tambien como parametro,
-   * de modo que el gateway la recibe aunque alguna capa elimine la cabecera.
+   * URL comun a todas las peticiones. La apikey viaja en la cabecera
+   * (headers()), nunca como parametro de URL.
    */
   private url(table: string, query?: string): string {
 
-    const apiKey = `apikey=${encodeURIComponent(this.publishableKey)}`;
-
     return query
-      ? `${this.baseUrl}/${table}?${query}&${apiKey}`
-      : `${this.baseUrl}/${table}?${apiKey}`;
+      ? `${this.baseUrl}/${table}?${query}`
+      : `${this.baseUrl}/${table}`;
   }
 
   /*
@@ -116,8 +122,9 @@ export class SupabaseService {
    * Cabeceras comunes a TODAS las peticiones a /rest/v1/*:
    *  - apikey: clave publica de Supabase (siempre).
    *  - Authorization: Bearer <access_token> cuando hay sesion.
+   *  - accept: tipo de respuesta solicitado (p. ej. objeto unico en insert()).
    */
-  private headers(prefer?: string): HttpHeaders {
+  private headers(prefer?: string, accept?: string): HttpHeaders {
 
     let headers = new HttpHeaders()
       .set('apikey', this.publishableKey)
@@ -131,6 +138,10 @@ export class SupabaseService {
 
     if (prefer) {
       headers = headers.set('Prefer', prefer);
+    }
+
+    if (accept) {
+      headers = headers.set('Accept', accept);
     }
 
     return headers;
