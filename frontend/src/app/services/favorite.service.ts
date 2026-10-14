@@ -1,10 +1,22 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import {
+  computed,
+  effect,
+  inject,
+  Injectable,
+  signal
+} from '@angular/core';
 import { catchError, forkJoin, of } from 'rxjs';
 
 import { Product } from '../models/product';
 import { AuthService } from './auth.service';
-import { environment } from '../../environments/environment';
+import { SupabaseService } from './supabase.service';
+
+interface FavoriteRow {
+  user_id: string;
+  product_id: string;
+  product: Product;
+  created_at: string;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,9 +24,8 @@ import { environment } from '../../environments/environment';
 export class FavoriteService {
 
   private readonly storageKey = 'micarro-favorites';
-  private readonly apiUrl = `${environment.apiBaseUrl}/api/favorites`;
 
-  private readonly http = inject(HttpClient);
+  private readonly supabase = inject(SupabaseService);
   private readonly authService = inject(AuthService);
 
   private readonly favoriteProducts = signal<Product[]>(
@@ -54,7 +65,6 @@ export class FavoriteService {
       this.remoteMode = authenticated;
 
       if (authenticated) {
-        // No se fusionan: solo se ofrecen como migración opcional.
         this.migrationCandidates.set(this.loadProducts());
         this.loadRemoteFavorites();
       } else {
@@ -64,7 +74,7 @@ export class FavoriteService {
     });
   }
 
-  isFavorite(productId: number): boolean {
+  isFavorite(productId: string): boolean {
     return this.favoriteProducts()
       .some(product => product.id === productId);
   }
@@ -89,12 +99,21 @@ export class FavoriteService {
       return;
     }
 
+    const userId = this.authService.userId();
+
+    if (!userId) {
+      return;
+    }
+
     const requests = candidates.map(candidate =>
-      this.http
-        .post<Product>(`${this.apiUrl}/${candidate.id}`, {})
+      this.supabase
+        .insert<FavoriteRow>('favorites', {
+          user_id: userId,
+          product_id: candidate.id,
+          product: candidate,
+          created_at: new Date().toISOString()
+        })
         .pipe(
-          // El backend ignora duplicados. Un fallo puntual no debe romper
-          // el resto de la migración.
           catchError(() => of(null))
         )
     );
@@ -125,28 +144,40 @@ export class FavoriteService {
 
   private toggleRemote(product: Product): void {
 
+    const userId = this.authService.userId();
+
+    if (!userId) {
+      return;
+    }
+
+    const encodedId = encodeURIComponent(product.id);
+
     if (this.isFavorite(product.id)) {
 
-      this.http
-        .delete<void>(`${this.apiUrl}/${product.id}`)
+      this.supabase
+        .delete('favorites', `user_id=eq.${userId}&product_id=eq.${encodedId}`)
         .subscribe({
           next: () => this.favoriteProducts.update(products =>
             products.filter(stored => stored.id !== product.id)
           ),
-          // Ante un error HTTP no se toca el estado para no quedar inconsistente.
           error: () => undefined
         });
 
       return;
     }
 
-    this.http
-      .post<Product>(`${this.apiUrl}/${product.id}`, {})
+    this.supabase
+      .insert<FavoriteRow>('favorites', {
+        user_id: userId,
+        product_id: product.id,
+        product,
+        created_at: new Date().toISOString()
+      })
       .subscribe({
-        next: (created) => this.favoriteProducts.update(products =>
+        next: (row) => this.favoriteProducts.update(products =>
           products.some(stored => stored.id === product.id)
             ? products
-            : [...products, created ?? product]
+            : [...products, row?.product ?? product]
         ),
         error: () => undefined
       });
@@ -154,11 +185,21 @@ export class FavoriteService {
 
   private loadRemoteFavorites(): void {
 
-    this.http
-      .get<Product[]>(this.apiUrl)
+    const userId = this.authService.userId();
+
+    if (!userId) {
+      return;
+    }
+
+    this.supabase
+      .get<FavoriteRow>(
+        'favorites',
+        `select=product&user_id=eq.${userId}&order=created_at.desc`
+      )
       .subscribe({
-        next: (products) => this.favoriteProducts.set(products ?? []),
-        // Si falla, se mantiene el estado visual actual.
+        next: (rows) => this.favoriteProducts.set(
+          (rows ?? []).map(row => row.product)
+        ),
         error: () => undefined
       });
   }
@@ -185,8 +226,6 @@ export class FavoriteService {
         return [];
       }
 
-      // La primera versión guardaba solo ids (number[]);
-      // sin datos de producto no se pueden pintar las cards.
       if (parsed.length > 0 && typeof parsed[0] === 'number') {
         return [];
       }

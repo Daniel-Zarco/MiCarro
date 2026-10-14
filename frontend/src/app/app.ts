@@ -259,7 +259,29 @@ export class App implements OnInit, OnDestroy {
         }
       });
 
-    this.loadProducts();
+    this.loading.set(true);
+
+    this.productService.loadCatalog().subscribe({
+      next: () => this.loadProducts(),
+      error: () => {
+        this.loading.set(false);
+        this.error.set('No se han podido cargar los productos.');
+      }
+    });
+  }
+
+  protected retryLoadCatalog(): void {
+
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.productService.loadCatalog().subscribe({
+      next: () => this.loadProducts(),
+      error: () => {
+        this.loading.set(false);
+        this.error.set('No se han podido cargar los productos.');
+      }
+    });
   }
 
 

@@ -9,15 +9,29 @@ import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';
 
 describe('App', () => {
+
   const product: Product = {
-    id: 1,
+    id: 'test-1',
     externalId: 'test-1',
     name: 'Producto de prueba',
     brand: 'Marca',
     category: 'Categoría',
+    mainCategory: 'Categoría',
+    visualGroup: null,
     imageUrl: null,
     format: '1 ud.',
     price: 2.5,
+    previousPrice: null,
+    firstSeenAt: null,
+    priceChangedAt: null,
+    lastSyncedAt: null,
+    catalogOrder: 0,
+    active: true,
+    source: 'MERCADONA',
+    priceHistory: [],
+    currentPrice: null,
+    difference: null,
+    differencePercent: null,
   };
 
   const getProducts = vi.fn(() => of({
@@ -28,7 +42,6 @@ describe('App', () => {
     size: 24,
     first: true,
     last: true,
-    empty: false,
   }));
 
   const getCategories = vi.fn(() => of([
@@ -49,7 +62,6 @@ describe('App', () => {
     size: 24,
     first: true,
     last: true,
-    empty: false,
   }));
 
   beforeEach(async () => {
@@ -64,7 +76,13 @@ describe('App', () => {
         provideHttpClient(),
         {
           provide: ProductService,
-          useValue: { getProducts, getCategories, getCategoryGroups, getNovedades },
+          useValue: {
+            getProducts,
+            getCategories,
+            getCategoryGroups,
+            getNovedades,
+            loadCatalog: () => of(undefined),
+          },
         },
       ],
     }).compileComponents();
@@ -83,7 +101,6 @@ describe('App', () => {
     fixture.detectChanges();
     expect(element.querySelector('.cart-badge')?.textContent?.trim()).toBe('1');
 
-    // Tras añadir, la card muestra los controles de cantidad.
     const quantityButtons = element.querySelectorAll<HTMLButtonElement>('.card-quantity button');
     quantityButtons[1].click();
     fixture.detectChanges();
@@ -137,13 +154,13 @@ describe('App', () => {
     fixture.detectChanges();
     expect(options().length).toBe(4);
 
-    options()[2].click(); // Precio → menor a mayor
+    options()[2].click();
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc', '');
 
     button.click();
     fixture.detectChanges();
-    options()[2].click(); // Precio de nuevo → mayor a menor
+    options()[2].click();
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', '');
   });
@@ -161,13 +178,13 @@ describe('App', () => {
 
     button.click();
     fixture.detectChanges();
-    options()[3].click(); // Alfabéticamente → A–Z
+    options()[3].click();
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'name', '');
 
     button.click();
     fixture.detectChanges();
-    options()[3].click(); // Alfabéticamente de nuevo → Z–A
+    options()[3].click();
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'name-desc', '');
   });
@@ -183,7 +200,7 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Categorías
+    options[1].click();
     fixture.detectChanges();
 
     expect(getCategories).toHaveBeenCalled();
@@ -202,15 +219,15 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Categorías
+    options[1].click();
     fixture.detectChanges();
 
-    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
+    element.querySelector<HTMLButtonElement>('.category-card')!.click();
     fixture.detectChanges();
 
     expect(getCategoryGroups).toHaveBeenCalledWith('Bebidas');
-    expect(getProducts.mock.calls.length).toBe(1); // solo el load inicial
-    expect(element.querySelectorAll('.category-card').length).toBe(2); // grupos
+    expect(getProducts.mock.calls.length).toBe(1);
+    expect(element.querySelectorAll('.category-card').length).toBe(2);
     expect(element.querySelector('#products-title')?.textContent).toContain('Bebidas');
 
     const back = element.querySelector<HTMLButtonElement>('.catalog-mode-button')!;
@@ -218,7 +235,7 @@ describe('App', () => {
 
     back.click();
     fixture.detectChanges();
-    expect(element.querySelectorAll('.category-card').length).toBe(2); // categorías
+    expect(element.querySelectorAll('.category-card').length).toBe(2);
   });
 
   it('abre un grupo, carga sus productos y permite volver a grupos', () => {
@@ -232,13 +249,13 @@ describe('App', () => {
     const options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Categorías
+    options[1].click();
     fixture.detectChanges();
 
-    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
+    element.querySelector<HTMLButtonElement>('.category-card')!.click();
     fixture.detectChanges();
 
-    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // grupo Fruta
+    element.querySelector<HTMLButtonElement>('.category-card')!.click();
     fixture.detectChanges();
 
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'catalog', 'Bebidas', 'Fruta');
@@ -252,7 +269,7 @@ describe('App', () => {
 
     backToGroups.click();
     fixture.detectChanges();
-    expect(element.querySelectorAll('.category-card').length).toBe(2); // grupos
+    expect(element.querySelectorAll('.category-card').length).toBe(2);
   });
 
   it('ordena los productos del grupo sin salir de él', () => {
@@ -266,16 +283,15 @@ describe('App', () => {
     let options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Categorías
+    options[1].click();
     fixture.detectChanges();
 
-    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // Bebidas
+    element.querySelector<HTMLButtonElement>('.category-card')!.click();
     fixture.detectChanges();
 
-    element.querySelector<HTMLButtonElement>('.category-card')!.click(); // grupo Fruta
+    element.querySelector<HTMLButtonElement>('.category-card')!.click();
     fixture.detectChanges();
 
-    // Dentro del grupo el selector ofrece 3 opciones (sin "Categorías").
     element.querySelector<HTMLButtonElement>('.sort-dropdown-button')!.click();
     fixture.detectChanges();
     options = Array.from(
@@ -286,7 +302,7 @@ describe('App', () => {
     expect(options[1].textContent).toContain('Precio');
     expect(options[2].textContent).toContain('A - Z');
 
-    options[1].click(); // Precio ↑
+    options[1].click();
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-asc', 'Bebidas', 'Fruta');
     expect(element.querySelector('#products-title')?.textContent).toContain('Fruta');
@@ -296,11 +312,10 @@ describe('App', () => {
     options = Array.from(
       element.querySelectorAll<HTMLButtonElement>('.sort-dropdown-menu button')
     );
-    options[1].click(); // Precio de nuevo → ↓
+    options[1].click();
     fixture.detectChanges();
     expect(getProducts).toHaveBeenLastCalledWith(0, 24, '', 'price-desc', 'Bebidas', 'Fruta');
 
-    // Sigue dentro del grupo: no salió ni cambió la selección.
     expect(element.querySelector('#products-title')?.textContent).toContain('Fruta');
     expect(
       Array.from(
@@ -331,7 +346,6 @@ describe('App', () => {
 
     expect(getNovedades).toHaveBeenLastCalledWith('price-drops', 0, 24);
 
-    // La card muestra el badge de bajada y el precio anterior tachado.
     expect(element.querySelector('.price-change')?.textContent).toContain('↓');
     expect(element.querySelector('.price-previous')).not.toBeNull();
   });

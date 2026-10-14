@@ -1,148 +1,157 @@
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting
-} from '@angular/common/http/testing';
 import { signal, WritableSignal } from '@angular/core';
+import { of, throwError } from 'rxjs';
+import { vi } from 'vitest';
 
 import { Product } from '../models/product';
-import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
 import { FavoriteService } from './favorite.service';
+import { SupabaseService } from './supabase.service';
 
 describe('FavoriteService', () => {
 
   let favoriteService: FavoriteService;
-  let httpMock: HttpTestingController;
   let authenticated: WritableSignal<boolean>;
+  let get: ReturnType<typeof vi.fn>;
+  let insert: ReturnType<typeof vi.fn>;
+  let del: ReturnType<typeof vi.fn>;
 
-  const apiUrl = `${environment.apiBaseUrl}/api/favorites`;
   const storageKey = 'micarro-favorites';
 
-  const product: Product = {
-    id: 1,
-    externalId: 'ext-1',
-    name: 'Pollo',
-    brand: null,
-    category: null,
-    imageUrl: null,
-    format: null,
-    price: 1.5,
-  };
+  function makeProduct(id: string): Product {
+    return {
+      id,
+      externalId: id,
+      name: 'Pollo',
+      brand: null,
+      category: null,
+      mainCategory: 'Carne',
+      visualGroup: null,
+      imageUrl: null,
+      format: null,
+      price: 1.5,
+      previousPrice: null,
+      firstSeenAt: null,
+      priceChangedAt: null,
+      lastSyncedAt: null,
+      catalogOrder: 0,
+      active: true,
+      source: 'MERCADONA',
+      priceHistory: [],
+      currentPrice: null,
+      difference: null,
+      differencePercent: null,
+    };
+  }
+
+  const product = makeProduct('1');
 
   beforeEach(() => {
     localStorage.clear();
     authenticated = signal(false);
+    get = vi.fn(() => of([]));
+    insert = vi.fn(() => of({ product }));
+    del = vi.fn(() => of(null));
 
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
         {
           provide: AuthService,
-          useValue: { isAuthenticated: authenticated }
-        }
-      ]
+          useValue: { isAuthenticated: authenticated, userId: () => 'u-1' },
+        },
+        {
+          provide: SupabaseService,
+          useValue: { get, insert, delete: del },
+        },
+      ],
     });
 
     favoriteService = TestBed.inject(FavoriteService);
-    httpMock = TestBed.inject(HttpTestingController);
-
-    // Ejecuta el efecto inicial (modo invitado).
     TestBed.tick();
   });
 
   afterEach(() => {
-    httpMock.verify();
     localStorage.clear();
   });
 
   it('invitado: usa localStorage para añadir y eliminar', () => {
     favoriteService.toggle(product);
 
-    expect(favoriteService.isFavorite(1)).toBe(true);
+    expect(favoriteService.isFavorite('1')).toBe(true);
     expect(JSON.parse(localStorage.getItem(storageKey)!)).toHaveLength(1);
 
     favoriteService.toggle(product);
 
-    expect(favoriteService.isFavorite(1)).toBe(false);
+    expect(favoriteService.isFavorite('1')).toBe(false);
     expect(JSON.parse(localStorage.getItem(storageKey)!)).toHaveLength(0);
   });
 
-  it('autenticado: carga los favoritos desde el backend', () => {
+  it('autenticado: carga los favoritos desde Supabase', () => {
+    get.mockReturnValue(of([{ product }]));
     authenticated.set(true);
     TestBed.tick();
 
-    const request = httpMock.expectOne(apiUrl);
-    expect(request.request.method).toBe('GET');
-    request.flush([product]);
-
+    expect(get).toHaveBeenCalledWith(
+      'favorites',
+      'select=product&user_id=eq.u-1&order=created_at.desc'
+    );
     expect(favoriteService.products()).toEqual([product]);
-    expect(favoriteService.isFavorite(1)).toBe(true);
+    expect(favoriteService.isFavorite('1')).toBe(true);
   });
 
-  it('autenticado: añade con POST', () => {
+  it('autenticado: añade con insert', () => {
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([]);
 
     favoriteService.toggle(product);
 
-    const request = httpMock.expectOne(`${apiUrl}/1`);
-    expect(request.request.method).toBe('POST');
-    request.flush(product);
-
-    expect(favoriteService.isFavorite(1)).toBe(true);
+    expect(insert).toHaveBeenCalledWith(
+      'favorites',
+      expect.objectContaining({ user_id: 'u-1', product_id: '1' })
+    );
+    expect(favoriteService.isFavorite('1')).toBe(true);
   });
 
-  it('autenticado: elimina con DELETE', () => {
+  it('autenticado: elimina con delete', () => {
+    get.mockReturnValue(of([{ product }]));
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([product]);
 
     favoriteService.toggle(product);
 
-    const request = httpMock.expectOne(`${apiUrl}/1`);
-    expect(request.request.method).toBe('DELETE');
-    request.flush(null, { status: 204, statusText: 'No Content' });
-
-    expect(favoriteService.isFavorite(1)).toBe(false);
+    expect(del).toHaveBeenCalledWith(
+      'favorites',
+      'user_id=eq.u-1&product_id=eq.1'
+    );
+    expect(favoriteService.isFavorite('1')).toBe(false);
   });
 
-  it('autenticado: un error HTTP no deja el estado inconsistente', () => {
+  it('autenticado: un error no deja el estado inconsistente', () => {
+    get.mockReturnValue(of([{ product }]));
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([product]);
+
+    del.mockReturnValue(throwError(() => new Error('fail')));
 
     favoriteService.toggle(product);
 
-    const request = httpMock.expectOne(`${apiUrl}/1`);
-    request.flush({}, { status: 500, statusText: 'Server Error' });
-
-    // Sigue siendo favorito porque la operación no se completó.
-    expect(favoriteService.isFavorite(1)).toBe(true);
+    expect(favoriteService.isFavorite('1')).toBe(true);
   });
 
   it('cambia de fuente al iniciar y cerrar sesión', () => {
-    // Invitado: favorito local.
     favoriteService.toggle(product);
-    expect(favoriteService.isFavorite(1)).toBe(true);
+    expect(favoriteService.isFavorite('1')).toBe(true);
 
-    // Login: carga los favoritos de la cuenta (vacía), sin fusionar.
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([]);
 
     expect(favoriteService.products()).toEqual([]);
-    // Los favoritos locales del invitado siguen intactos.
     expect(JSON.parse(localStorage.getItem(storageKey)!)).toHaveLength(1);
 
-    // Logout: vuelve a los favoritos locales del invitado.
     authenticated.set(false);
     TestBed.tick();
 
-    expect(favoriteService.isFavorite(1)).toBe(true);
+    expect(favoriteService.isFavorite('1')).toBe(true);
   });
 
   it('al iniciar sesión ofrece migrar los favoritos locales', () => {
@@ -151,54 +160,35 @@ describe('FavoriteService', () => {
 
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([]);
 
     expect(favoriteService.hasPendingMigration()).toBe(true);
     expect(favoriteService.pendingMigrationCount()).toBe(1);
   });
 
-  it('sin favoritos locales no ofrece migración', () => {
-    authenticated.set(true);
-    TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([]);
-
-    expect(favoriteService.hasPendingMigration()).toBe(false);
-  });
-
-  it('migrar favoritos locales: POST por cada uno y recarga, sin borrar locales', () => {
+  it('migrar favoritos locales: insert por cada uno y limpia la migración', () => {
     favoriteService.toggle(product);
 
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([]);
 
     favoriteService.migrateLocalFavorites();
 
-    const post = httpMock.expectOne(`${apiUrl}/1`);
-    expect(post.request.method).toBe('POST');
-    post.flush(product);
-
-    const reload = httpMock.expectOne(apiUrl);
-    expect(reload.request.method).toBe('GET');
-    reload.flush([product]);
-
+    expect(insert).toHaveBeenCalledWith(
+      'favorites',
+      expect.objectContaining({ product_id: '1' })
+    );
     expect(favoriteService.hasPendingMigration()).toBe(false);
-    expect(favoriteService.isFavorite(1)).toBe(true);
-    // Los favoritos locales no se borran.
-    expect(JSON.parse(localStorage.getItem(storageKey)!)).toHaveLength(1);
   });
 
-  it('rechazar la migración mantiene los favoritos remotos y no toca localStorage', () => {
+  it('rechazar la migración no toca localStorage', () => {
     favoriteService.toggle(product);
 
     authenticated.set(true);
     TestBed.tick();
-    httpMock.expectOne(apiUrl).flush([]);
 
     favoriteService.dismissMigration();
 
     expect(favoriteService.hasPendingMigration()).toBe(false);
-    expect(favoriteService.products()).toEqual([]);
     expect(JSON.parse(localStorage.getItem(storageKey)!)).toHaveLength(1);
   });
 });

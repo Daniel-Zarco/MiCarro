@@ -120,6 +120,13 @@
     }
 
 
+    @if (notice()) {
+      <p class="auth-notice" role="status">
+        {{ notice() }}
+      </p>
+    }
+
+
     <button
       class="auth-submit"
       type="submit"

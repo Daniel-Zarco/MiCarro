@@ -5,7 +5,6 @@ import {
   provideHttpClientTesting
 } from '@angular/common/http/testing';
 
-import { AuthResponse } from '../models/auth-response';
 import { UserProfile } from '../models/user-profile';
 import { environment } from '../../environments/environment';
 import { AuthService } from './auth.service';
@@ -15,15 +14,19 @@ describe('AuthService', () => {
   let authService: AuthService;
   let httpMock: HttpTestingController;
 
-  const apiUrl = `${environment.apiBaseUrl}/api`;
+  const authUrl = `${environment.supabaseUrl}/auth/v1`;
+  const publishableKey = environment.supabasePublishableKey;
 
-  const authResponse: AuthResponse = {
-    token: 'jwt-token',
-    tokenType: 'Bearer',
-    expiresIn: 3600,
-    userId: 1,
-    name: 'Dani',
-    email: 'dani@example.com',
+  const session = {
+    access_token: 'access-token',
+    refresh_token: 'refresh-token',
+    expires_in: 3600,
+    token_type: 'bearer',
+    user: {
+      id: 'u-1',
+      email: 'dani@example.com',
+      user_metadata: { name: 'Dani' },
+    },
   };
 
   beforeEach(() => {
@@ -41,42 +44,46 @@ describe('AuthService', () => {
   });
 
   afterEach(() => {
+    authService.logout();
     localStorage.clear();
   });
 
-  it('register guarda el token y el usuario', () => {
+  it('register guarda la sesión y el usuario', () => {
     let profile: UserProfile | undefined;
 
     authService
       .register('Dani', 'dani@example.com', 'password123')
       .subscribe(result => profile = result);
 
-    const request = httpMock.expectOne(`${apiUrl}/auth/register`);
+    const request = httpMock.expectOne(req => req.url === `${authUrl}/signup`);
     expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('apikey')).toBe(publishableKey);
     expect(request.request.body).toEqual({
-      name: 'Dani',
       email: 'dani@example.com',
       password: 'password123',
+      data: { name: 'Dani' },
     });
-    request.flush(authResponse);
+    request.flush(session);
 
-    expect(profile).toEqual({ id: 1, name: 'Dani', email: 'dani@example.com' });
+    expect(profile).toEqual({ id: 'u-1', name: 'Dani', email: 'dani@example.com' });
     expect(authService.isAuthenticated()).toBe(true);
-    expect(authService.user()).toEqual({ id: 1, name: 'Dani', email: 'dani@example.com' });
-    expect(authService.getToken()).toBe('jwt-token');
-    expect(localStorage.getItem('micarro-token')).toBe('jwt-token');
+    expect(authService.user()).toEqual({ id: 'u-1', name: 'Dani', email: 'dani@example.com' });
+    expect(authService.getToken()).toBe('access-token');
+    expect(authService.getRefreshToken()).toBe('refresh-token');
+    expect(localStorage.getItem('micarro-token')).toBe('access-token');
+    expect(localStorage.getItem('micarro-refresh')).toBe('refresh-token');
   });
 
-  it('login guarda el token y el usuario', () => {
+  it('login guarda la sesión y el usuario', () => {
     authService.login('dani@example.com', 'password123').subscribe();
 
-    const request = httpMock.expectOne(`${apiUrl}/auth/login`);
+    const request = httpMock.expectOne(`${authUrl}/token?grant_type=password`);
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual({
       email: 'dani@example.com',
       password: 'password123',
     });
-    request.flush(authResponse);
+    request.flush(session);
 
     expect(authService.isAuthenticated()).toBe(true);
     expect(authService.user()?.email).toBe('dani@example.com');
@@ -84,32 +91,51 @@ describe('AuthService', () => {
 
   it('logout limpia la sesión', () => {
     authService.login('dani@example.com', 'password123').subscribe();
-    httpMock.expectOne(`${apiUrl}/auth/login`).flush(authResponse);
+    httpMock.expectOne(`${authUrl}/token?grant_type=password`).flush(session);
 
     authService.logout();
 
     expect(authService.isAuthenticated()).toBe(false);
     expect(authService.user()).toBeNull();
     expect(authService.getToken()).toBeNull();
+    expect(authService.getRefreshToken()).toBeNull();
     expect(localStorage.getItem('micarro-token')).toBeNull();
     expect(localStorage.getItem('micarro-user')).toBeNull();
   });
 
   it('getProfile obtiene y actualiza el usuario', () => {
+    authService.login('dani@example.com', 'password123').subscribe();
+    httpMock.expectOne(`${authUrl}/token?grant_type=password`).flush(session);
+
     authService.getProfile().subscribe();
 
-    const request = httpMock.expectOne(`${apiUrl}/users/me`);
+    const request = httpMock.expectOne(`${authUrl}/user`);
     expect(request.request.method).toBe('GET');
-    request.flush({ id: 2, name: 'Ana', email: 'ana@example.com' });
+    expect(request.request.headers.get('Authorization')).toBe('Bearer access-token');
+    request.flush({ id: 'u-2', email: 'ana@example.com', user_metadata: { name: 'Ana' } });
 
-    expect(authService.user()).toEqual({ id: 2, name: 'Ana', email: 'ana@example.com' });
+    expect(authService.user()).toEqual({ id: 'u-2', name: 'Ana', email: 'ana@example.com' });
+  });
+
+  it('refreshSession renueva el token con el refresh_token', () => {
+    authService.login('dani@example.com', 'password123').subscribe();
+    httpMock.expectOne(`${authUrl}/token?grant_type=password`).flush(session);
+
+    authService.refreshSession().subscribe();
+
+    const request = httpMock.expectOne(`${authUrl}/token?grant_type=refresh_token`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ refresh_token: 'refresh-token' });
+    request.flush({ ...session, access_token: 'nuevo-token' });
+
+    expect(authService.getToken()).toBe('nuevo-token');
   });
 
   it('restaura la sesión desde localStorage', () => {
     localStorage.setItem('micarro-token', 'stored-token');
     localStorage.setItem(
       'micarro-user',
-      JSON.stringify({ id: 1, name: 'Dani', email: 'dani@example.com' })
+      JSON.stringify({ id: 'u-1', name: 'Dani', email: 'dani@example.com' })
     );
 
     TestBed.resetTestingModule();
@@ -124,6 +150,8 @@ describe('AuthService', () => {
 
     expect(restored.isAuthenticated()).toBe(true);
     expect(restored.getToken()).toBe('stored-token');
-    expect(restored.user()).toEqual({ id: 1, name: 'Dani', email: 'dani@example.com' });
+    expect(restored.user()).toEqual({ id: 'u-1', name: 'Dani', email: 'dani@example.com' });
+
+    restored.logout();
   });
 });

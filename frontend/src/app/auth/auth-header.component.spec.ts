@@ -17,7 +17,7 @@ describe('AuthHeaderComponent', () => {
           useValue: {
             isAuthenticated: () => authenticated,
             user: () => authenticated
-              ? { id: 1, name: 'Dani', email: 'dani@example.com' }
+              ? { id: '1', name: 'Dani', email: 'dani@example.com' }
               : null,
             logout,
           },

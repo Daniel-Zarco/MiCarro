@@ -63,7 +63,7 @@ export class HistoryComponent {
     });
   }
 
-  openDetail(id: number): void {
+  openDetail(id: string): void {
 
     this.view.set('detail');
     this.detail.set(null);
@@ -82,7 +82,7 @@ export class HistoryComponent {
     });
   }
 
-  deletePlan(id: number): void {
+  deletePlan(id: string): void {
 
     if (!window.confirm('¿Seguro que quieres borrar este plan?')) {
       return;

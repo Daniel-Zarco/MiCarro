@@ -12,7 +12,7 @@ import { HistoryComponent } from './history.component';
 describe('HistoryComponent', () => {
 
   const summary: ShoppingPlanHistorySummary = {
-    id: 5,
+    id: '5',
     budget: 60,
     estimatedTotal: 20,
     mode: 'BALANCED',
@@ -20,14 +20,14 @@ describe('HistoryComponent', () => {
   };
 
   const detail: ShoppingPlanHistory = {
-    id: 5,
+    id: '5',
     budget: 60,
     estimatedTotal: 20,
     mode: 'BALANCED',
     createdAt: '2026-01-01T00:00:00Z',
     items: [
       {
-        productId: 1,
+        productId: '1',
         productName: 'Pollo',
         brand: 'Marca',
         format: '1 kg',
@@ -96,7 +96,7 @@ describe('HistoryComponent', () => {
     element.querySelector<HTMLButtonElement>('.history-view')!.click();
     fixture.detectChanges();
 
-    expect(getHistoryById).toHaveBeenCalledWith(5);
+    expect(getHistoryById).toHaveBeenCalledWith('5');
     expect(element.querySelectorAll('.detail-item').length).toBe(1);
     expect(element.textContent).toContain('Pollo');
     expect(element.textContent).toContain('1 kg');
@@ -112,7 +112,7 @@ describe('HistoryComponent', () => {
     fixture.detectChanges();
 
     expect(confirmSpy).toHaveBeenCalled();
-    expect(deleteHistory).toHaveBeenCalledWith(5);
+    expect(deleteHistory).toHaveBeenCalledWith('5');
     expect(getHistory).toHaveBeenCalledTimes(2);
 
     confirmSpy.mockRestore();

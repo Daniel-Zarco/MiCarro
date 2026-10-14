@@ -10,7 +10,7 @@ import { AuthModalComponent } from './auth-modal.component';
 describe('AuthModalComponent', () => {
 
   const profile: UserProfile = {
-    id: 1,
+    id: '1',
     name: 'Dani',
     email: 'dani@example.com',
   };
@@ -25,7 +25,10 @@ describe('AuthModalComponent', () => {
     TestBed.configureTestingModule({
       imports: [AuthModalComponent],
       providers: [
-        { provide: AuthService, useValue: { login, register } },
+        {
+          provide: AuthService,
+          useValue: { login, register, isAuthenticated: () => true },
+        },
       ],
     });
 

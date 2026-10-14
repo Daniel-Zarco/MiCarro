@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
 import { vi } from 'vitest';
 
+import { Product } from '../models/product';
 import { SavedPlan, SavedPlanSummary } from '../models/saved-plan';
 import { PlansService } from '../services/plans.service';
 import { CartService } from '../services/cart.service';
@@ -9,8 +10,34 @@ import { PlansComponent } from './plans.component';
 
 describe('PlansComponent', () => {
 
+  function product(id: string, name: string, price: number | null): Product {
+    return {
+      id,
+      externalId: id,
+      name,
+      brand: 'Marca',
+      category: 'Carne',
+      mainCategory: 'Carne',
+      visualGroup: null,
+      imageUrl: 'https://example.com/pollo.jpg',
+      format: '1 kg',
+      price,
+      previousPrice: null,
+      firstSeenAt: null,
+      priceChangedAt: null,
+      lastSyncedAt: null,
+      catalogOrder: 0,
+      active: true,
+      source: 'MERCADONA',
+      priceHistory: [],
+      currentPrice: null,
+      difference: null,
+      differencePercent: null,
+    };
+  }
+
   const summary: SavedPlanSummary = {
-    id: 5,
+    id: '5',
     name: 'Compra semanal',
     createdAt: '2026-01-01T00:00:00Z',
     itemCount: 2,
@@ -18,12 +45,12 @@ describe('PlansComponent', () => {
   };
 
   const detail: SavedPlan = {
-    id: 5,
+    id: '5',
     name: 'Compra semanal',
     createdAt: '2026-01-01T00:00:00Z',
     items: [
       {
-        productId: 1,
+        productId: '1',
         productName: 'Pollo',
         brand: 'Marca',
         format: '1 kg',
@@ -31,19 +58,10 @@ describe('PlansComponent', () => {
         quantity: 2,
         unitPrice: 3.20,
         subtotal: 6.40,
-        currentProduct: {
-          id: 1,
-          externalId: 'ext-1',
-          name: 'Pollo',
-          brand: 'Marca',
-          category: 'Carne',
-          imageUrl: 'https://example.com/pollo.jpg',
-          format: '1 kg',
-          price: 3.60,
-        },
+        currentProduct: product('1', 'Pollo', 3.60),
       },
       {
-        productId: 999,
+        productId: '999',
         productName: 'Producto retirado',
         brand: null,
         format: null,
@@ -119,7 +137,7 @@ describe('PlansComponent', () => {
     element.querySelector<HTMLButtonElement>('.plans-view')!.click();
     fixture.detectChanges();
 
-    expect(getPlanById).toHaveBeenCalledWith(5);
+    expect(getPlanById).toHaveBeenCalledWith('5');
     expect(element.querySelectorAll('.plans-item').length).toBe(2);
     expect(element.textContent).toContain('Pollo');
     expect(element.textContent).toContain('1 kg');
@@ -135,7 +153,7 @@ describe('PlansComponent', () => {
     fixture.detectChanges();
 
     expect(confirmSpy).toHaveBeenCalled();
-    expect(deletePlan).toHaveBeenCalledWith(5);
+    expect(deletePlan).toHaveBeenCalledWith('5');
     expect(getPlans).toHaveBeenCalledTimes(2);
 
     confirmSpy.mockRestore();
@@ -155,9 +173,8 @@ describe('PlansComponent', () => {
   });
 
   it('añade el plan al carrito existente sumando cantidades, sin vaciarlo', () => {
-    // El carrito ya tiene 1 unidad del producto 1.
     cartService.addProduct({
-      id: 1,
+      id: '1',
       name: 'Pollo',
       brand: 'Marca',
       format: '1 kg',
@@ -176,20 +193,18 @@ describe('PlansComponent', () => {
 
     const items = cartService.items();
 
-    // Se usa el precio actual del catálogo y la cantidad se suma a la existente.
     expect(items.length).toBe(1);
-    expect(items[0].product.id).toBe(1);
+    expect(items[0].product.id).toBe('1');
     expect(items[0].product.price).toBe(3.60);
     expect(items[0].quantity).toBe(3);
 
-    // El producto no disponible se ignora y se avisa al usuario.
     expect(element.querySelector('.plans-notice')?.textContent)
       .toContain('ya no está disponible');
   });
 
   it('no vacía el carrito actual al añadir un plan', () => {
     cartService.addProduct({
-      id: 7,
+      id: '7',
       name: 'Pan',
       brand: 'Panificadora',
       format: '1 barra',
@@ -207,8 +222,8 @@ describe('PlansComponent', () => {
 
     const ids = cartService.items().map(item => item.product.id);
 
-    expect(ids).toContain(7);
-    expect(ids).toContain(1);
+    expect(ids).toContain('7');
+    expect(ids).toContain('1');
   });
 
   it('renombra el plan desde el detalle sin salir de él', () => {
@@ -221,7 +236,6 @@ describe('PlansComponent', () => {
     element.querySelector<HTMLButtonElement>('.plans-rename')!.click();
     fixture.detectChanges();
 
-    // El input se precarga con el nombre actual.
     const input = element.querySelector<HTMLInputElement>('.plans-rename-input')!;
     expect(input.value).toBe('Compra semanal');
 
@@ -232,9 +246,8 @@ describe('PlansComponent', () => {
     element.querySelector<HTMLButtonElement>('.plans-rename-submit')!.click();
     fixture.detectChanges();
 
-    expect(renamePlan).toHaveBeenCalledWith(5, 'Compra navideña');
+    expect(renamePlan).toHaveBeenCalledWith('5', 'Compra navideña');
 
-    // Se actualiza en pantalla sin salir del detalle.
     expect(element.querySelector('.plans-summary-name')?.textContent)
       .toContain('Compra navideña');
     expect(element.querySelector('.plans-rename-modal')).toBeNull();

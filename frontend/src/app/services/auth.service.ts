@@ -1,10 +1,17 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { map, Observable, tap } from 'rxjs';
+import {
+  computed,
+  inject,
+  Injectable,
+  signal
+} from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { map, Observable, throwError } from 'rxjs';
 
-import { AuthResponse } from '../models/auth-response';
+import { AuthResponse, SupabaseUser } from '../models/auth-response';
 import { UserProfile } from '../models/user-profile';
 import { environment } from '../../environments/environment';
+
+const REFRESH_SKEW_MS = 60_000;
 
 @Injectable({
   providedIn: 'root'
@@ -13,17 +20,28 @@ export class AuthService {
 
   private readonly http = inject(HttpClient);
 
-  private readonly apiUrl = `${environment.apiBaseUrl}/api`;
+  private readonly authUrl = `${environment.supabaseUrl}/auth/v1`;
+  private readonly publishableKey = environment.supabasePublishableKey;
 
   private readonly tokenKey = 'micarro-token';
+  private readonly refreshKey = 'micarro-refresh';
   private readonly userKey = 'micarro-user';
+  private readonly expiresAtKey = 'micarro-expires-at';
 
   private readonly tokenSignal = signal<string | null>(
-    this.loadToken()
+    this.load(this.tokenKey)
+  );
+
+  private readonly refreshSignal = signal<string | null>(
+    this.load(this.refreshKey)
   );
 
   private readonly userSignal = signal<UserProfile | null>(
     this.loadUser()
+  );
+
+  private readonly expiresAtSignal = signal<number | null>(
+    this.loadExpiresAt()
   );
 
   readonly user = this.userSignal.asReadonly();
@@ -32,16 +50,39 @@ export class AuthService {
     this.tokenSignal() !== null
   );
 
+  private refreshTimer?: ReturnType<typeof setTimeout>;
+
+  constructor() {
+    // Recoge la sesión si venimos de un enlace de confirmación de correo y,
+    // después, programa la renovación de la sesión persistida.
+    this.consumeRedirectSession();
+    this.scheduleRefresh();
+
+    if (this.refreshSignal()) {
+      this.refreshSession().subscribe({ error: () => undefined });
+    }
+  }
+
   register(
     name: string,
     email: string,
     password: string
   ): Observable<UserProfile> {
 
+    // redirect_to: a dónde vuelve el usuario tras confirmar el correo.
+    const redirectTo = typeof window !== 'undefined'
+      ? window.location.origin
+      : null;
+
+    const url = redirectTo
+      ? `${this.authUrl}/signup?redirect_to=${encodeURIComponent(redirectTo)}`
+      : `${this.authUrl}/signup`;
+
     return this.http
       .post<AuthResponse>(
-        `${this.apiUrl}/auth/register`,
-        { name, email, password }
+        url,
+        { email, password, data: { name } },
+        { headers: this.authHeaders() }
       )
       .pipe(
         map(response => this.startSession(response))
@@ -55,8 +96,9 @@ export class AuthService {
 
     return this.http
       .post<AuthResponse>(
-        `${this.apiUrl}/auth/login`,
-        { email, password }
+        `${this.authUrl}/token?grant_type=password`,
+        { email, password },
+        { headers: this.authHeaders() }
       )
       .pipe(
         map(response => this.startSession(response))
@@ -66,39 +108,211 @@ export class AuthService {
   getProfile(): Observable<UserProfile> {
 
     return this.http
-      .get<UserProfile>(`${this.apiUrl}/users/me`)
+      .get<SupabaseUser>(
+        `${this.authUrl}/user`,
+        { headers: this.bearerHeaders() }
+      )
       .pipe(
-        tap(profile => this.setUser(profile))
+        map(user => {
+          const profile = this.toProfile(user);
+          this.setUser(profile);
+          return profile;
+        })
+      );
+  }
+
+  refreshSession(): Observable<UserProfile> {
+
+    const refreshToken = this.refreshSignal();
+
+    if (!refreshToken) {
+      return throwError(() => new Error('Sin refresh token'));
+    }
+
+    return this.http
+      .post<AuthResponse>(
+        `${this.authUrl}/token?grant_type=refresh_token`,
+        { refresh_token: refreshToken },
+        { headers: this.authHeaders() }
+      )
+      .pipe(
+        map(response => this.startSession(response))
       );
   }
 
   logout(): void {
 
+    this.clearRefreshTimer();
+
     this.tokenSignal.set(null);
+    this.refreshSignal.set(null);
     this.userSignal.set(null);
+    this.expiresAtSignal.set(null);
 
     localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.refreshKey);
     localStorage.removeItem(this.userKey);
+    localStorage.removeItem(this.expiresAtKey);
   }
 
   getToken(): string | null {
     return this.tokenSignal();
   }
 
+  getAccessToken(): string | null {
+    return this.tokenSignal();
+  }
+
+  getRefreshToken(): string | null {
+    return this.refreshSignal();
+  }
+
+  userId(): string | null {
+    return this.userSignal()?.id ?? null;
+  }
+
   private startSession(response: AuthResponse): UserProfile {
 
-    const profile: UserProfile = {
-      id: response.userId,
-      name: response.name,
-      email: response.email
-    };
+    this.applyTokens(
+      response.access_token,
+      response.refresh_token,
+      response.expires_in
+    );
 
-    this.tokenSignal.set(response.token);
+    const profile = response.user
+      ? this.toProfile(response.user)
+      : { id: '', name: '', email: '' };
+
     this.setUser(profile);
 
-    localStorage.setItem(this.tokenKey, response.token);
+    this.scheduleRefresh();
 
     return profile;
+  }
+
+  /*
+   * Recoge la sesión cuando el usuario vuelve desde el enlace de confirmación
+   * de correo de Supabase (flujo implícito: tokens en el hash de la URL).
+   */
+  private consumeRedirectSession(): void {
+
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const hash = window.location.hash;
+
+    if (!hash || hash.indexOf('access_token') === -1) {
+      return;
+    }
+
+    const params = new URLSearchParams(hash.substring(1));
+    const accessToken = params.get('access_token');
+
+    if (!accessToken) {
+      return;
+    }
+
+    this.applyTokens(
+      accessToken,
+      params.get('refresh_token'),
+      params.get('expires_in')
+    );
+
+    // Limpia el hash para no dejar los tokens visibles en la barra de direcciones.
+    window.history.replaceState(
+      null,
+      '',
+      window.location.pathname + window.location.search
+    );
+
+    this.scheduleRefresh();
+    this.getProfile().subscribe({ error: () => undefined });
+  }
+
+  private applyTokens(
+    accessToken: string | null | undefined,
+    refreshToken: string | null | undefined,
+    expiresIn: string | number | null | undefined
+  ): void {
+
+    if (accessToken) {
+      this.tokenSignal.set(accessToken);
+      localStorage.setItem(this.tokenKey, accessToken);
+    }
+
+    if (refreshToken) {
+      this.refreshSignal.set(refreshToken);
+      localStorage.setItem(this.refreshKey, refreshToken);
+    }
+
+    const seconds = expiresIn != null ? Number(expiresIn) : NaN;
+
+    if (Number.isFinite(seconds) && seconds > 0) {
+      const expiresAt = Date.now() + seconds * 1000;
+      this.expiresAtSignal.set(expiresAt);
+      localStorage.setItem(this.expiresAtKey, String(expiresAt));
+    }
+  }
+
+  /*
+   * Renueva el token un minuto antes de que expire, de modo que una sesión
+   * persistida no obliga al usuario a volver a iniciar sesión cada hora.
+   */
+  private scheduleRefresh(): void {
+
+    this.clearRefreshTimer();
+
+    const expiresAt = this.expiresAtSignal();
+
+    if (!expiresAt) {
+      return;
+    }
+
+    const delay = Math.max(0, expiresAt - Date.now() - REFRESH_SKEW_MS);
+
+    this.refreshTimer = setTimeout(() => {
+      this.refreshSession().subscribe({ error: () => undefined });
+    }, delay);
+  }
+
+  private clearRefreshTimer(): void {
+
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = undefined;
+    }
+  }
+
+  private toProfile(user: SupabaseUser): UserProfile {
+
+    const email = user.email ?? '';
+
+    return {
+      id: user.id,
+      name: user.user_metadata?.name ?? email.split('@')[0],
+      email
+    };
+  }
+
+  private authHeaders(): HttpHeaders {
+
+    return new HttpHeaders({
+      apikey: this.publishableKey,
+      'Content-Type': 'application/json'
+    });
+  }
+
+  private bearerHeaders(): HttpHeaders {
+
+    let headers = this.authHeaders();
+    const token = this.tokenSignal();
+
+    if (token) {
+      headers = headers.set('Authorization', `Bearer ${token}`);
+    }
+
+    return headers;
   }
 
   private setUser(profile: UserProfile): void {
@@ -111,8 +325,8 @@ export class AuthService {
     );
   }
 
-  private loadToken(): string | null {
-    return localStorage.getItem(this.tokenKey);
+  private load(key: string): string | null {
+    return localStorage.getItem(key);
   }
 
   private loadUser(): UserProfile | null {
@@ -128,5 +342,18 @@ export class AuthService {
     } catch {
       return null;
     }
+  }
+
+  private loadExpiresAt(): number | null {
+
+    const saved = localStorage.getItem(this.expiresAtKey);
+
+    if (!saved) {
+      return null;
+    }
+
+    const value = Number(saved);
+
+    return Number.isFinite(value) ? value : null;
   }
 }

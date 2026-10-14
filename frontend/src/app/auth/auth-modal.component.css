@@ -228,6 +228,29 @@
     rgba(141, 90, 78, 0.08);
 }
 
+.auth-notice {
+  margin:
+    10px 0 0;
+
+  padding:
+    10px 13px;
+
+  border:
+    1px solid
+    rgba(47, 111, 85, 0.25);
+
+  border-radius: 12px;
+
+  background:
+    rgba(47, 111, 85, 0.08);
+
+  color:
+    var(--green-dark, #235841);
+
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
 .auth-submit {
   display: flex;
   align-items: center;

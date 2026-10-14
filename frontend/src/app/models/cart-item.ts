@@ -1,5 +1,5 @@
 export interface CartProduct {
-  id: number;
+  id: string;
   name: string;
   brand: string | null;
   format: string | null;

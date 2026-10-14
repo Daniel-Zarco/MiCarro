@@ -1,7 +1,7 @@
 import { ShoppingMode } from './shopping-mode';
 
 export interface ShoppingPlanHistoryItem {
-  productId: number | null;
+  productId: string | null;
   productName: string | null;
   brand: string | null;
   format: string | null;
@@ -12,7 +12,7 @@ export interface ShoppingPlanHistoryItem {
 }
 
 export interface ShoppingPlanHistory {
-  id: number;
+  id: string;
   budget: number;
   estimatedTotal: number;
   mode: ShoppingMode;
@@ -21,27 +21,9 @@ export interface ShoppingPlanHistory {
 }
 
 export interface ShoppingPlanHistorySummary {
-  id: number;
+  id: string;
   budget: number;
   estimatedTotal: number;
   mode: ShoppingMode;
   createdAt: string;
-}
-
-export interface ShoppingPlanHistoryItemRequest {
-  productId: number | null;
-  productName: string | null;
-  brand: string | null;
-  format: string | null;
-  imageUrl: string | null;
-  quantity: number | null;
-  unitPrice: number | null;
-  subtotal: number | null;
-}
-
-export interface ShoppingPlanHistoryRequest {
-  budget: number;
-  estimatedTotal: number;
-  mode: ShoppingMode;
-  items: ShoppingPlanHistoryItemRequest[];
 }

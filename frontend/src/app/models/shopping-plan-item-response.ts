@@ -1,5 +1,5 @@
 export interface ShoppingPlanItemResponse {
-  productId: number | null;
+  productId: string | null;
   name: string | null;
   brand: string | null;
   format: string | null;

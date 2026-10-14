@@ -19,7 +19,7 @@ describe('PlannerComponent (carrito)', () => {
     preferences: null,
     items: [
       {
-        productId: 1,
+        productId: '1',
         name: 'Pollo',
         brand: 'Marca',
         format: '1 kg',
@@ -29,7 +29,7 @@ describe('PlannerComponent (carrito)', () => {
         subtotal: 10,
       },
       {
-        productId: 2,
+        productId: '2',
         name: 'Arroz',
         brand: null,
         format: null,
@@ -44,7 +44,7 @@ describe('PlannerComponent (carrito)', () => {
   };
 
   const historyResponse: ShoppingPlanHistory = {
-    id: 1,
+    id: '1',
     budget: 60,
     estimatedTotal: 20,
     mode: 'BALANCED',
@@ -103,12 +103,12 @@ describe('PlannerComponent (carrito)', () => {
     element.querySelector<HTMLButtonElement>('.plan-add-all')!.click();
     fixture.detectChanges();
 
-    expect(cartService.quantities().get(1)).toBe(1);
-    expect(cartService.quantities().get(2)).toBe(2);
+    expect(cartService.quantities().get('1')).toBe(1);
+    expect(cartService.quantities().get('2')).toBe(2);
     expect(cartService.items().length).toBe(2);
 
     expect(
-      cartService.items().find(item => item.product.id === 1)?.product.imageUrl
+      cartService.items().find(item => item.product.id === '1')?.product.imageUrl
     ).toBe('https://example.com/pollo.jpg');
 
     expect(element.querySelector('.plan-cart-feedback')).not.toBeNull();
@@ -116,7 +116,7 @@ describe('PlannerComponent (carrito)', () => {
 
   it('suma cantidades si el producto ya está en el carrito', () => {
     cartService.addItem(
-      { id: 1, name: 'Pollo', brand: null, format: null, price: 10, imageUrl: null },
+      { id: '1', name: 'Pollo', brand: null, format: null, price: 10, imageUrl: null },
       2
     );
 
@@ -126,7 +126,7 @@ describe('PlannerComponent (carrito)', () => {
     element.querySelector<HTMLButtonElement>('.plan-add-all')!.click();
     fixture.detectChanges();
 
-    expect(cartService.quantities().get(1)).toBe(3);
+    expect(cartService.quantities().get('1')).toBe(3);
   });
 
   it('vuelve a planificar limpiando el resultado', () => {

@@ -1,7 +1,7 @@
 import { Product } from './product';
 
 export interface SavedPlanItem {
-  productId: number;
+  productId: string | null;
   productName: string | null;
   brand: string | null;
   format: string | null;
@@ -13,14 +13,14 @@ export interface SavedPlanItem {
 }
 
 export interface SavedPlan {
-  id: number;
+  id: string;
   name: string;
   createdAt: string;
   items: SavedPlanItem[];
 }
 
 export interface SavedPlanSummary {
-  id: number;
+  id: string;
   name: string;
   createdAt: string;
   itemCount: number;
@@ -28,7 +28,7 @@ export interface SavedPlanSummary {
 }
 
 export interface SavedPlanItemRequest {
-  productId: number;
+  productId: string;
   quantity: number;
 }
 

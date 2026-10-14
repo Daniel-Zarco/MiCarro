@@ -37,6 +37,7 @@ export class AuthModalComponent {
   readonly mode = signal<AuthMode>('login');
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly notice = signal<string | null>(null);
   readonly submitted = signal(false);
 
   readonly form = new FormGroup({
@@ -65,6 +66,7 @@ export class AuthModalComponent {
 
     this.loading.set(true);
     this.error.set(null);
+    this.notice.set(null);
 
     const { name, email, password } = this.form.getRawValue();
 
@@ -75,6 +77,17 @@ export class AuthModalComponent {
     request$.subscribe({
       next: () => {
         this.loading.set(false);
+
+        // Con la confirmación de correo activada, el registro no abre sesión:
+        // se avisa al usuario en lugar de cerrar el modal como si estuviera dentro.
+        if (this.mode() === 'register' && !this.authService.isAuthenticated()) {
+          this.notice.set(
+            `Te hemos enviado un correo de confirmación a ${email}. ` +
+            'Ábrelo para activar tu cuenta y después inicia sesión.'
+          );
+          return;
+        }
+
         this.closed.emit();
       },
       error: (error: HttpErrorResponse) => {
@@ -113,6 +126,7 @@ export class AuthModalComponent {
 
     this.mode.set(mode);
     this.error.set(null);
+    this.notice.set(null);
     this.submitted.set(false);
 
     const name = this.form.controls.name;

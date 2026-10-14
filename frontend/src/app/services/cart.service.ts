@@ -31,7 +31,7 @@ export class CartService {
   );
 
   readonly quantities = computed(() => {
-    const quantities = new Map<number, number>();
+    const quantities = new Map<string, number>();
     
     for (const item of this.cartItems()) {
       quantities.set(item.product.id, item.quantity);
@@ -87,7 +87,7 @@ export class CartService {
     ]);
   }
 
-  increaseQuantity(productId: number): void {
+  increaseQuantity(productId: string): void {
 
     this.cartItems.update(items =>
       items.map(item =>
@@ -101,7 +101,7 @@ export class CartService {
     );
   }
 
-  decreaseQuantity(productId: number): void {
+  decreaseQuantity(productId: string): void {
 
     this.cartItems.update(items =>
       items
@@ -117,7 +117,7 @@ export class CartService {
     );
   }
 
-  removeProduct(productId: number): void {
+  removeProduct(productId: string): void {
 
     this.cartItems.update(items =>
       items.filter(
