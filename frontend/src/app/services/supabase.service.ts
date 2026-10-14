@@ -13,8 +13,11 @@ import { AuthService } from './auth.service';
 
 /*
  * Cliente mínimo de Supabase sobre PostgREST (REST), sin dependencias externas.
- * Sólo usa la clave pública (publishable) y el token de sesión del usuario. Si
- * una petición devuelve 401 por token caducado, renueva la sesión y reintenta.
+ * Todas las peticiones a /rest/v1/* llevan:
+ *  - apikey: la clave publica (en cabecera Y como parametro de URL, para que el
+ *    gateway la reciba siempre).
+ *  - Authorization: Bearer <access_token de Supabase> cuando hay sesion.
+ * Si una peticion devuelve 401 por token caducado, renueva y reintenta.
  */
 @Injectable({
   providedIn: 'root'
@@ -30,7 +33,7 @@ export class SupabaseService {
   get<T>(table: string, query: string): Observable<T[]> {
     return this.authorized(() =>
       this.http.get<T[]>(
-        `${this.baseUrl}/${table}?${query}`,
+        this.url(table, query),
         { headers: this.headers() }
       )
     );
@@ -39,7 +42,7 @@ export class SupabaseService {
   insert<T>(table: string, body: unknown): Observable<T> {
     return this.authorized(() =>
       this.http.post<T>(
-        `${this.baseUrl}/${table}`,
+        this.url(table),
         body,
         { headers: this.headers('return=representation') }
       )
@@ -49,7 +52,7 @@ export class SupabaseService {
   insertMany<T>(table: string, body: unknown[]): Observable<T[]> {
     return this.authorized(() =>
       this.http.post<T[]>(
-        `${this.baseUrl}/${table}`,
+        this.url(table),
         body,
         { headers: this.headers('return=representation') }
       )
@@ -59,7 +62,7 @@ export class SupabaseService {
   update<T>(table: string, query: string, body: unknown): Observable<T> {
     return this.authorized(() =>
       this.http.patch<T>(
-        `${this.baseUrl}/${table}?${query}`,
+        this.url(table, query),
         body,
         { headers: this.headers('return=representation') }
       )
@@ -69,15 +72,29 @@ export class SupabaseService {
   delete(table: string, query: string): Observable<unknown> {
     return this.authorized(() =>
       this.http.delete(
-        `${this.baseUrl}/${table}?${query}`,
+        this.url(table, query),
         { headers: this.headers() }
       )
     );
   }
 
   /*
-   * Ante un 401 (token caducado), renueva la sesión una vez y reintenta la
-   * petición con el token nuevo. Si no hay refresh token, propaga el error.
+   * URL comun a todas las peticiones. La apikey viaja tambien como parametro,
+   * de modo que el gateway la recibe aunque alguna capa elimine la cabecera.
+   */
+  private url(table: string, query?: string): string {
+
+    const apiKey = `apikey=${encodeURIComponent(this.publishableKey)}`;
+
+    return query
+      ? `${this.baseUrl}/${table}?${query}&${apiKey}`
+      : `${this.baseUrl}/${table}?${apiKey}`;
+  }
+
+  /*
+   * Ante un 401 (token caducado), renueva la sesion una vez y reintenta la
+   * peticion. El reintento reconstruye URL y cabeceras, por lo que nunca se
+   * pierden la apikey ni el token.
    */
   private authorized<T>(factory: () => Observable<T>): Observable<T> {
 
@@ -99,8 +116,6 @@ export class SupabaseService {
    * Cabeceras comunes a TODAS las peticiones a /rest/v1/*:
    *  - apikey: clave publica de Supabase (siempre).
    *  - Authorization: Bearer <access_token> cuando hay sesion.
-   * Se reconstruyen en cada intento (incluido el reintento tras 401), por lo
-   * que nunca se pierden al renovar el token.
    */
   private headers(prefer?: string): HttpHeaders {
 
