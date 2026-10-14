@@ -128,3 +128,23 @@ create policy "shopping_history_items_own" on public.shopping_history_items
     exists (select 1 from public.shopping_history h
             where h.id = history_id and h.user_id = auth.uid())
   );
+
+-- ---------------------------------------------------------
+-- Permisos de tabla para los roles de PostgREST.
+-- Sin estos GRANT, PostgREST responde 42501 "permission denied".
+-- La RLS sigue filtrando fila a fila por usuario (auth.uid()).
+-- ---------------------------------------------------------
+grant usage on schema public to anon, authenticated;
+
+grant select, insert, update, delete on public.favorites               to authenticated;
+grant select, insert, update, delete on public.saved_plans             to authenticated;
+grant select, insert, update, delete on public.saved_plan_items        to authenticated;
+grant select, insert, update, delete on public.shopping_history        to authenticated;
+grant select, insert, update, delete on public.shopping_history_items  to authenticated;
+
+-- El rol anónimo solo lee (la RLS devuelve 0 filas sin sesión).
+grant select on public.favorites               to anon;
+grant select on public.saved_plans             to anon;
+grant select on public.saved_plan_items        to anon;
+grant select on public.shopping_history        to anon;
+grant select on public.shopping_history_items  to anon;

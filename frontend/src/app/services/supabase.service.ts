@@ -95,12 +95,18 @@ export class SupabaseService {
     );
   }
 
+  /*
+   * Cabeceras comunes a TODAS las peticiones a /rest/v1/*:
+   *  - apikey: clave publica de Supabase (siempre).
+   *  - Authorization: Bearer <access_token> cuando hay sesion.
+   * Se reconstruyen en cada intento (incluido el reintento tras 401), por lo
+   * que nunca se pierden al renovar el token.
+   */
   private headers(prefer?: string): HttpHeaders {
 
-    let headers = new HttpHeaders({
-      apikey: this.publishableKey,
-      'Content-Type': 'application/json'
-    });
+    let headers = new HttpHeaders()
+      .set('apikey', this.publishableKey)
+      .set('Content-Type', 'application/json');
 
     const token = this.auth.getAccessToken();
 
