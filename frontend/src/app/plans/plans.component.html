@@ -40,7 +40,15 @@
 
   <div class="plans-body">
 
-    @if (view() === 'list') {
+    @if (!authenticated()) {
+
+      <div class="plans-state plans-login">
+        <strong>Inicia sesión para ver tus planes</strong>
+        <p>Guarda tus compras y recupéralas cuando quieras.</p>
+        <button type="button" (click)="login.emit()">Iniciar sesión</button>
+      </div>
+
+    } @else if (view() === 'list') {
 
       @if (loading()) {
         <div class="plans-state" role="status">

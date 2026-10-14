@@ -342,6 +342,7 @@
   @if (plansOpen()) {
     <app-plans
       (closed)="closePlans()"
+      (login)="onPlansLogin()"
     ></app-plans>
   }
 

@@ -889,6 +889,11 @@ export class App implements OnInit, OnDestroy {
     this.plansOpen.set(false);
   }
 
+  protected onPlansLogin(): void {
+    this.plansOpen.set(false);
+    this.openAuthModal();
+  }
+
   protected openSavePlan(): void {
 
     if (!this.authService.isAuthenticated()) {

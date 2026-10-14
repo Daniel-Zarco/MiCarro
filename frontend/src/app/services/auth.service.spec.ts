@@ -132,10 +132,13 @@ describe('AuthService', () => {
   });
 
   it('restaura la sesión desde localStorage', () => {
+    const uuid = '11111111-1111-1111-1111-111111111111';
+
     localStorage.setItem('micarro-token', 'stored-token');
+    localStorage.setItem('micarro-refresh', 'stored-refresh');
     localStorage.setItem(
       'micarro-user',
-      JSON.stringify({ id: 'u-1', name: 'Dani', email: 'dani@example.com' })
+      JSON.stringify({ id: uuid, name: 'Dani', email: 'dani@example.com' })
     );
 
     TestBed.resetTestingModule();
@@ -147,11 +150,38 @@ describe('AuthService', () => {
     });
 
     const restored = TestBed.inject(AuthService);
+    const mock = TestBed.inject(HttpTestingController);
 
     expect(restored.isAuthenticated()).toBe(true);
     expect(restored.getToken()).toBe('stored-token');
-    expect(restored.user()).toEqual({ id: 'u-1', name: 'Dani', email: 'dani@example.com' });
+    expect(restored.user()).toEqual({ id: uuid, name: 'Dani', email: 'dani@example.com' });
+
+    // El constructor renueva la sesión en segundo plano.
+    mock.expectOne(`${authUrl}/token?grant_type=refresh_token`).flush(session);
 
     restored.logout();
+  });
+
+  it('invalida una sesión antigua (id numérico) al arrancar', () => {
+    localStorage.setItem('micarro-token', 'old-jwt');
+    localStorage.setItem(
+      'micarro-user',
+      JSON.stringify({ id: 1, name: 'Dani', email: 'dani@example.com' })
+    );
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    });
+
+    const fresh = TestBed.inject(AuthService);
+
+    expect(fresh.isAuthenticated()).toBe(false);
+    expect(fresh.user()).toBeNull();
+    expect(localStorage.getItem('micarro-token')).toBeNull();
+    expect(localStorage.getItem('micarro-user')).toBeNull();
   });
 });

@@ -13,6 +13,13 @@ import { environment } from '../../environments/environment';
 
 const REFRESH_SKEW_MS = 60_000;
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isUuid(value: string | null | undefined): boolean {
+  return typeof value === 'string' && UUID_PATTERN.test(value);
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -53,6 +60,15 @@ export class AuthService {
   private refreshTimer?: ReturnType<typeof setTimeout>;
 
   constructor() {
+    // Invalida sesiones del esquema anterior (JWT propio + id numérico del
+    // backend previo): si se envían a Supabase provocan 401 Unauthorized.
+    if (this.purgeLegacySession()) {
+      this.tokenSignal.set(null);
+      this.refreshSignal.set(null);
+      this.userSignal.set(null);
+      this.expiresAtSignal.set(null);
+    }
+
     // Recoge la sesión si venimos de un enlace de confirmación de correo y,
     // después, programa la renovación de la sesión persistida.
     this.consumeRedirectSession();
@@ -168,7 +184,35 @@ export class AuthService {
   }
 
   userId(): string | null {
-    return this.userSignal()?.id ?? null;
+    const id = this.userSignal()?.id ?? null;
+
+    // Solo UUIDs de Supabase Auth; nunca ids numéricos del esquema anterior.
+    return isUuid(id) ? id : null;
+  }
+
+  /*
+   * Elimina una sesión del esquema anterior (JWT propio + id numérico). Se
+   * detecta porque falta el refresh token de Supabase o el id no es un UUID.
+   */
+  private purgeLegacySession(): boolean {
+
+    const token = localStorage.getItem(this.tokenKey);
+    const refresh = localStorage.getItem(this.refreshKey);
+    const user = this.loadUser();
+
+    const legacyToken = !!token && !refresh;
+    const legacyUser = !!user && !isUuid(user.id);
+
+    if (!legacyToken && !legacyUser) {
+      return false;
+    }
+
+    localStorage.removeItem(this.tokenKey);
+    localStorage.removeItem(this.refreshKey);
+    localStorage.removeItem(this.userKey);
+    localStorage.removeItem(this.expiresAtKey);
+
+    return true;
   }
 
   private startSession(response: AuthResponse): UserProfile {

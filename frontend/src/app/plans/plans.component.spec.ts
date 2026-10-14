@@ -6,6 +6,7 @@ import { Product } from '../models/product';
 import { SavedPlan, SavedPlanSummary } from '../models/saved-plan';
 import { PlansService } from '../services/plans.service';
 import { CartService } from '../services/cart.service';
+import { AuthService } from '../services/auth.service';
 import { PlansComponent } from './plans.component';
 
 describe('PlansComponent', () => {
@@ -92,6 +93,10 @@ describe('PlansComponent', () => {
         {
           provide: PlansService,
           useValue: { getPlans, getPlanById, deletePlan, renamePlan },
+        },
+        {
+          provide: AuthService,
+          useValue: { isAuthenticated: () => true },
         },
       ],
     });

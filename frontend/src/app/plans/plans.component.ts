@@ -1,6 +1,7 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   output,
   signal
@@ -10,6 +11,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { SavedPlan, SavedPlanSummary } from '../models/saved-plan';
 import { PlansService } from '../services/plans.service';
 import { CartService } from '../services/cart.service';
+import { AuthService } from '../services/auth.service';
 
 type PlansView = 'list' | 'detail';
 
@@ -26,8 +28,12 @@ export class PlansComponent {
 
   private readonly plansService = inject(PlansService);
   private readonly cartService = inject(CartService);
+  private readonly authService = inject(AuthService);
 
   readonly closed = output<void>();
+  readonly login = output<void>();
+
+  readonly authenticated = computed(() => this.authService.isAuthenticated());
 
   readonly view = signal<PlansView>('list');
 
@@ -57,6 +63,14 @@ export class PlansComponent {
 
     this.view.set('list');
     this.detail.set(null);
+
+    // Sin sesión no se consulta Supabase: se ofrece iniciar sesión.
+    if (!this.authService.isAuthenticated()) {
+      this.loading.set(false);
+      this.error.set(null);
+      this.plans.set([]);
+      return;
+    }
 
     this.loading.set(true);
     this.error.set(null);
