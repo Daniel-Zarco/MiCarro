@@ -55,7 +55,9 @@ describe('AuthService', () => {
       .register('Dani', 'dani@example.com', 'password123')
       .subscribe(result => profile = result);
 
-    const request = httpMock.expectOne(req => req.url === `${authUrl}/signup`);
+    const request = httpMock.expectOne(
+      req => req.url.startsWith(`${authUrl}/signup`)
+    );
     expect(request.request.method).toBe('POST');
     expect(request.request.headers.get('apikey')).toBe(publishableKey);
     expect(request.request.body).toEqual({

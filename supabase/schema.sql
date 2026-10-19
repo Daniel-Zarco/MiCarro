@@ -148,3 +148,9 @@ grant select on public.saved_plans             to anon;
 grant select on public.saved_plan_items        to anon;
 grant select on public.shopping_history        to anon;
 grant select on public.shopping_history_items  to anon;
+
+-- ---------------------------------------------------------
+-- Carrito sincronizado
+-- La tabla, las políticas y las funciones del carrito están en
+-- supabase/cart_items.sql. Ejecutar ese archivo después de este.
+-- ---------------------------------------------------------

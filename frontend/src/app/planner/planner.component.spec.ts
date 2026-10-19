@@ -69,7 +69,10 @@ describe('PlannerComponent (carrito)', () => {
         },
         {
           provide: AuthService,
-          useValue: { isAuthenticated: authenticated },
+          useValue: {
+            isAuthenticated: authenticated,
+            userId: () => null,
+          },
         },
         {
           provide: HistoryService,

@@ -96,7 +96,10 @@ describe('PlansComponent', () => {
         },
         {
           provide: AuthService,
-          useValue: { isAuthenticated: () => true },
+          useValue: {
+            isAuthenticated: () => true,
+            userId: () => null,
+          },
         },
       ],
     });

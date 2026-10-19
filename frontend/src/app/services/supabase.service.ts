@@ -18,6 +18,34 @@ import { AuthService } from './auth.service';
  */
 const OBJECT_ACCEPT = 'application/vnd.pgrst.object+json';
 
+export interface SupabaseRealtimeChange {
+  eventType: string;
+  schema?: string;
+  table?: string;
+  record?: Record<string, unknown>;
+  oldRecord?: Record<string, unknown>;
+}
+
+interface RealtimeMessage {
+  event?: string;
+  topic?: string;
+  ref?: string;
+  join_ref?: string;
+  payload?: {
+    status?: string;
+    response?: {
+      reason?: string;
+    };
+    data?: {
+      schema?: string;
+      table?: string;
+      type?: string;
+      record?: Record<string, unknown>;
+      old_record?: Record<string, unknown>;
+    };
+  };
+}
+
 /*
  * Cliente mínimo de Supabase sobre PostgREST (REST), sin dependencias externas.
  * Todas las peticiones a /rest/v1/* llevan:
@@ -84,6 +112,276 @@ export class SupabaseService {
         { headers: this.headers() }
       )
     );
+  }
+
+  /*
+   * Invoca una funcion RPC de PostgREST. Se usa para operaciones que deben
+   * ser atomicas en servidor (por ejemplo, sumar/restar cantidades del
+   * carrito sin condiciones de carrera entre dispositivos).
+   */
+  rpc<T>(functionName: string, body: unknown): Observable<T> {
+    return this.authorized(() =>
+      this.http.post<T>(
+        `${this.baseUrl}/rpc/${functionName}`,
+        body,
+        { headers: this.headers() }
+      )
+    );
+  }
+
+  /*
+   * Suscripcion Realtime a cambios Postgres de una tabla. Implementa el
+   * protocolo WebSocket de Supabase (Phoenix) para no añadir dependencias.
+   * Devuelve una funcion para cancelar la suscripcion.
+   */
+  subscribeToTable(
+    table: string,
+    filter: string,
+    onChange: (change: SupabaseRealtimeChange) => void
+  ): () => void {
+
+    if (typeof WebSocket === 'undefined') {
+      return () => undefined;
+    }
+
+    const topic = `realtime:${table}:`
+      + filter.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+    let socket: WebSocket | null = null;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let currentJoinRef = '';
+    let ref = 0;
+    let attempts = 0;
+    let disposed = false;
+
+    const nextRef = () => String(++ref);
+
+    const clearHeartbeat = () => {
+      if (heartbeat !== undefined) {
+        clearInterval(heartbeat);
+        heartbeat = undefined;
+      }
+    };
+
+    const stopSocket = () => {
+      clearHeartbeat();
+
+      if (!socket) {
+        return;
+      }
+
+      socket.onopen = null;
+      socket.onmessage = null;
+      socket.onclose = null;
+      socket.onerror = null;
+
+      try {
+        socket.close();
+      } catch {
+        // La conexion ya estaba cerrada.
+      }
+
+      socket = null;
+    };
+
+    const scheduleRetry = () => {
+
+      if (disposed) {
+        return;
+      }
+
+      clearTimeout(retryTimer);
+
+      const delays = [1000, 2000, 5000, 10000];
+      const delay = delays[Math.min(attempts, delays.length - 1)];
+
+      attempts += 1;
+
+      retryTimer = setTimeout(() => connect(), delay);
+    };
+
+    const send = (message: unknown) => {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify(message));
+      }
+    };
+
+    const connect = () => {
+
+      if (disposed) {
+        return;
+      }
+
+      clearTimeout(retryTimer);
+      stopSocket();
+
+      const token = this.auth.getAccessToken();
+
+      if (!token) {
+        scheduleRetry();
+        return;
+      }
+
+      try {
+        socket = new WebSocket(this.realtimeUrl());
+      } catch {
+        scheduleRetry();
+        return;
+      }
+
+      currentJoinRef = nextRef();
+
+      socket.onopen = () => {
+
+        attempts = 0;
+
+        send({
+          topic,
+          event: 'phx_join',
+          payload: {
+            config: {
+              broadcast: { ack: false, self: false },
+              presence: { enabled: false, key: '' },
+              postgres_changes: [
+                {
+                  event: '*',
+                  schema: 'public',
+                  table,
+                  filter
+                }
+              ],
+              private: false
+            },
+            access_token: token
+          },
+          ref: currentJoinRef,
+          join_ref: currentJoinRef
+        });
+
+        heartbeat = setInterval(() => {
+          send({
+            topic: 'phoenix',
+            event: 'heartbeat',
+            payload: {},
+            ref: nextRef()
+          });
+        }, 25_000);
+      };
+
+      socket.onmessage = (event: MessageEvent) => {
+
+        const message = this.parseRealtimeMessage(event.data);
+
+        if (!message) {
+          return;
+        }
+
+        if (message.event === 'postgres_changes') {
+
+          const data = message.payload?.data;
+
+          if (data) {
+            onChange({
+              eventType: data.type ?? '',
+              schema: data.schema,
+              table: data.table,
+              record: data.record,
+              oldRecord: data.old_record
+            });
+          }
+
+          return;
+        }
+
+        if (
+          message.event === 'phx_reply'
+          && message.payload?.status === 'error'
+        ) {
+
+          const reason = String(
+            message.payload.response?.reason ?? ''
+          );
+
+          stopSocket();
+
+          if (/expired/i.test(reason) && this.auth.getRefreshToken()) {
+            this.auth.refreshSession().subscribe({
+              next: () => connect(),
+              error: () => scheduleRetry()
+            });
+            return;
+          }
+
+          scheduleRetry();
+          return;
+        }
+
+        if (message.event === 'phx_error') {
+          stopSocket();
+          scheduleRetry();
+        }
+      };
+
+      socket.onclose = () => {
+        clearHeartbeat();
+        socket = null;
+
+        if (!disposed) {
+          scheduleRetry();
+        }
+      };
+
+      socket.onerror = () => {
+        // onclose se encarga de programar la reconexion.
+      };
+    };
+
+    connect();
+
+    return () => {
+
+      disposed = true;
+
+      clearTimeout(retryTimer);
+      clearHeartbeat();
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        send({
+          topic,
+          event: 'phx_leave',
+          payload: {},
+          ref: nextRef(),
+          join_ref: currentJoinRef
+        });
+      }
+
+      stopSocket();
+    };
+  }
+
+  private realtimeUrl(): string {
+
+    const base = environment.supabaseUrl
+      .replace(/^http/i, 'ws')
+      .replace(/\/+$/, '');
+
+    return `${base}/realtime/v1/websocket`
+      + `?apikey=${encodeURIComponent(this.publishableKey)}`
+      + '&vsn=1.0.0';
+  }
+
+  private parseRealtimeMessage(data: unknown): RealtimeMessage | null {
+
+    if (typeof data !== 'string') {
+      return null;
+    }
+
+    try {
+      return JSON.parse(data) as RealtimeMessage;
+    } catch {
+      return null;
+    }
   }
 
   /*
